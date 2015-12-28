@@ -9,6 +9,9 @@ GET     /                                       App.Index
 # Ignore favicon requests
 GET     /favicon.ico                            404
 
+POST	/api/v1/auth/check 	AuthorizationCtrl.CheckAuthorization
+
+
 # Map static resources from the /app/public folder to the /public path
 GET     /public/*filepath                       Static.Serve("public")
 
