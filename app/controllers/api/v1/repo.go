@@ -5,5 +5,5 @@ import (
 )
 
 type RepoController struct {
-	controllers.ApiController
+	controllers.JWTController
 }

@@ -2,14 +2,15 @@ package controllers
 
 import (
 	"encoding/json"
+	"github.com/revel/revel"
 	"io/ioutil"
 )
 
-type ApiController struct {
-	GormController
+type BasicController struct {
+	*revel.Controller
 }
 
-func (c *ApiController) GetJSONBody(out interface{}) error {
+func (c *BasicController) GetJSONBody(out interface{}) error {
 	byteBody, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		return err

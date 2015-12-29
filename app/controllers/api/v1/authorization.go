@@ -10,7 +10,7 @@ import (
 )
 
 type AuthorizationCtrl struct {
-	controllers.ApiController
+	controllers.GormController
 }
 
 func (c AuthorizationCtrl) CheckAuthorization() revel.Result {

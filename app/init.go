@@ -31,6 +31,8 @@ func init() {
 	revel.InterceptMethod((*controllers.GormController).Begin, revel.BEFORE)
 	revel.InterceptMethod((*controllers.GormController).Commit, revel.AFTER)
 	revel.InterceptMethod((*controllers.GormController).Rollback, revel.FINALLY)
+
+	revel.InterceptMethod((*controllers.JWTController).ParseToken, revel.BEFORE)
 }
 
 // TODO turn this into revel.HeaderFilter
