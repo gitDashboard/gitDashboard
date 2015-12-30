@@ -1,0 +1,25 @@
+{
+  "name": "gitDashboard",
+  "homepage": "https://github.com/gitDashboard/gitDashboard",
+  "authors": [
+    "Igor Maculan <n3wtron@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "angularjs#~1.4.8",
+    "semantic": "semantic-ui#~2.1.7",
+    "angular-local-storage": "~0.2.3",
+    "angular-jwt": "~0.0.9"
+  }
+}

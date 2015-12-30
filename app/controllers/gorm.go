@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"crypto/md5"
 	"database/sql"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/revel/revel"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var Db gorm.DB
@@ -45,8 +45,9 @@ func InitDB() {
 		Db.Table("users_groups").AddForeignKey("user_id", "users(id)", "CASCADE", "RESTRICT")
 
 		var adminPwdFld sql.NullString
-		adminPwd := md5.Sum([]byte("admin"))
-		adminPwdFld.String = string(adminPwd[:16])
+		adminPwd, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+		adminPwdFld.String = string(adminPwd)
+		adminPwdFld.Valid = true
 		adminUser := &models.User{Username: "admin", Type: "internal", Password: adminPwdFld}
 		adminUser.Groups = []models.Group{*adminGrp}
 		Db.Create(adminUser)
