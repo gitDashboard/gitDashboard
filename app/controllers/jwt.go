@@ -3,12 +3,14 @@ package controllers
 import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gitDashboard/client/v1/misc"
+	"github.com/mitchellh/mapstructure"
 	"github.com/revel/revel"
 )
 
 type JWTController struct {
 	GormController
-	User map[string]interface{}
+	User misc.JWTUser
 }
 
 func (ctrl *JWTController) ParseToken() revel.Result {
@@ -20,7 +22,10 @@ func (ctrl *JWTController) ParseToken() revel.Result {
 		revel.ERROR.Println(err)
 		return ctrl.RenderError(errors.New("401: Not authorized"))
 	} else {
-		ctrl.User = token.Claims
+		err := mapstructure.Decode(token.Claims, &ctrl.User)
+		if err != nil {
+			revel.ERROR.Println(err)
+		}
 		return nil
 	}
 }

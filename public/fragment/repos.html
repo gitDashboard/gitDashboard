@@ -1,0 +1,21 @@
+<div ng-controller="ReposController">
+	<table class="ui celled table">
+		<thead>
+			<th>Name</th>
+			<th>Description</th>
+		</thead>
+		<tr ng-repeat="repo in repositories">
+			<td>
+			<div style="display:inline;" ng-click="showRepo(repo.path,repo)">
+					<i class="ui folder icon" ng-hide="repo.isRepo"></i>
+					<i class="ui code icon" ng-show="repo.isRepo"></i>
+					<i class="ui lock icon" ng-hide="repo.isAuthorized"></i>
+					{[{repo.name}]}
+				</div>
+			</td>
+			<td>
+				{[{repo.description}]}
+			</td>
+		</tr>
+	</table>
+</div>

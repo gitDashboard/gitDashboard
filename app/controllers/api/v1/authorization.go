@@ -8,6 +8,7 @@ import (
 	"github.com/gitDashboard/client/v1/response"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
+	"github.com/jinzhu/gorm"
 	"github.com/revel/revel"
 	"golang.org/x/crypto/bcrypt"
 	"regexp"
@@ -18,6 +19,36 @@ type AuthorizationCtrl struct {
 	controllers.GormController
 }
 
+func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string) (bool, error) {
+	var user models.User
+	//finding user
+	db.Where("username = ?", username).First(&user)
+	//finding repo
+	var repo models.Repo
+	db.Where("path = ?", repoDir).First(&repo)
+	//finding permissions
+	var perms []models.Permission
+	db.Where("repo_id = ? and user_id = ? and type=?", repo.ID, user.ID, operation).Find(&perms)
+	if len(perms) > 0 {
+		if operation != "read" {
+			for _, perm := range perms {
+				match, err := regexp.MatchString(perm.Branch, refName)
+				if err != nil {
+					return false, err
+				}
+				if match {
+					if perm.Granted {
+						return true, nil
+					}
+				}
+			}
+		} else {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (c AuthorizationCtrl) CheckAuthorization() revel.Result {
 	authReq := new(request.AuthorizationRequest)
 	err := c.GetJSONBody(authReq)
@@ -26,30 +57,10 @@ func (c AuthorizationCtrl) CheckAuthorization() revel.Result {
 	}
 	revel.INFO.Printf("CheckAuthorization parameter:%+v\n", authReq)
 
-	var user models.User
-	//finding user
-	c.Tx.Where("username = ?", authReq.Username).First(&user)
-	//finding repo
-	var repo models.Repo
-	c.Tx.Where("path = ?", authReq.RepositoryPath).First(&repo)
-	//finding permissions
-	var perms []models.Permission
-	c.Tx.Where("repo_id = ? and user_id = ? and type=?", repo.ID, user.ID, authReq.Operation).Find(&perms)
-	authorized := false
-	for _, perm := range perms {
-		revel.INFO.Printf("perm: %v", perm)
-		match, err := regexp.MatchString(perm.Branch, authReq.RefName)
-		if err != nil {
-			revel.ERROR.Println("Error checking permission regex:", perm.Branch, err.Error())
-		}
-		if match {
-			authorized = perm.Granted
-			if authorized {
-				break
-			}
-		}
+	authorized, err := CheckAutorization(c.Tx, authReq.RepositoryPath, authReq.Username, authReq.Operation, authReq.RefName)
+	if err != nil {
+		return c.RenderError(err)
 	}
-
 	return c.RenderJson(&response.AuthorizationResponse{Authorized: authorized})
 }
 
@@ -73,12 +84,12 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 	if dbUser.ID == 0 {
 		//no user found
 		loginResp.Success = false
-		loginResp.Message = "No user found with username:" + loginReq.Username
+		loginResp.Error = response.NoUserFoundError
 	}
 	pwdErr := checkUserPassword(&dbUser, loginReq.Password, loginReq.Type)
 	if pwdErr != nil {
 		loginResp.Success = false
-		loginResp.Message = "Login failed for user:" + loginReq.Username
+		loginResp.Error = response.AuthenticationFailedError
 	} else {
 		var jwtUser misc.JWTUser
 		jwtUser.Username = loginReq.Username
@@ -95,7 +106,8 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 			revel.ERROR.Println(err.Error())
 			revel.ERROR.Printf("%+v\n", jwtToken)
 			loginResp.Success = false
-			loginResp.Message = err.Error()
+			loginResp.Error = response.FatalError
+			loginResp.Error.Message = loginResp.Error.Message + err.Error()
 		} else {
 			loginResp.Success = true
 			loginResp.JWT = jwtStr

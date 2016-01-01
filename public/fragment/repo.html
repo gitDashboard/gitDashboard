@@ -1,0 +1,19 @@
+<div class="ui top attached segment right aligned">
+	<i class="ui backward icon" style="cursor:pointer;" ng-click="decPage()"/><div class="ui mini input  "><input type="number" ng-model="page" ng-change="getCommits()"/></div><i class="ui forward icon" style="cursor:pointer;" ng-click="incPage()"/>
+</div>
+<table class="ui attached celled table">
+	<thead>
+		<tr>
+			<th>Date<i class="sort descending icon" style="cursor:pointer;" ng-hide="ascending" ng-click="changeSort()" /><i class="sort ascending icon" style="cursor:pointer;" ng-show="ascending" ng-click="changeSort()"/></th>
+			<th>Author</th>
+			<th>Message</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr ng-repeat="commit in commits">
+			<td  class="collapsing">{[{commit.date | date:'medium'}]}</td>
+			<td  class="collapsing">{[{commit.author}]} - {[{commit.email}]}</td>
+			<td>{[{commit.message}]}</td>
+		</tr>
+	</tbody>
+</table>
