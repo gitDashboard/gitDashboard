@@ -6,6 +6,7 @@ import (
 	"github.com/gitDashboard/client/v1/misc"
 	"github.com/mitchellh/mapstructure"
 	"github.com/revel/revel"
+	"net/http"
 )
 
 type JWTController struct {
@@ -20,6 +21,7 @@ func (ctrl *JWTController) ParseToken() revel.Result {
 
 	if err != nil {
 		revel.ERROR.Println(err)
+		ctrl.Response.Status = http.StatusUnauthorized
 		return ctrl.RenderError(errors.New("401: Not authorized"))
 	} else {
 		err := mapstructure.Decode(token.Claims, &ctrl.User)

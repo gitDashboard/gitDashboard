@@ -8,7 +8,35 @@
 	<script type="text/javascript" src="public/js/app.js"></script>
 </head>
 <body ng-controller="MainCtrl">
-	{{template "loginBar.html"}}
-	 <div ng-view></div>
+	<div class="ui one column doubling grid container">
+		<div class="column">
+			<div class="ui grid">
+				<div class="five wide column">
+					<h1>GitDashboard</h1>
+				</div>
+				<div class="eleven wide column right aligned top aligned">
+					{{template "loginBar.html"}}
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="ui attached stackable menu">
+		<div class="ui container">
+			<a class="item">
+				<i class="home icon"></i> Home
+			</a>
+			<a class="item" href="#/">
+				<i class="grid layout icon"></i> Browse
+			</a>
+			<div class="right item">
+				<div class="ui input"><input type="text" placeholder="Search..."></div>
+			</div>
+		</div>
+	</div>
+	<div class="ui one column doubling grid container">
+		<div class="column">
+			<div ng-view></div>
+		</div>
+	</div>
 </body>
 </html>

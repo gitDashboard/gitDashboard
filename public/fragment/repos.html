@@ -4,6 +4,13 @@
 			<th>Name</th>
 			<th>Description</th>
 		</thead>
+		<tr ng-show="hasParent()">
+			<td>
+				<a ng-click="upDir()">...</a>
+			</td>
+			<td>
+			</td>
+		</tr>
 		<tr ng-repeat="repo in repositories">
 			<td>
 			<div style="display:inline;" ng-click="showRepo(repo.path,repo)">

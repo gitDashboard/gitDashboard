@@ -1,19 +1,91 @@
-<div class="ui top attached segment right aligned">
-	<i class="ui backward icon" style="cursor:pointer;" ng-click="decPage()"/><div class="ui mini input  "><input type="number" ng-model="page" ng-change="getCommits()"/></div><i class="ui forward icon" style="cursor:pointer;" ng-click="incPage()"/>
+<div class="">
+	<div class="ui icon menu attached  blue inverted " >
+		<a class="item">
+			<i class="up arrow icon" ng-click="returnToFolder()" />
+		</a>
+	</div>
+	<div class="ui segment bottom attached">
+		<b>Path:</b>{[{repo.path}]} <b><br/>
+		Description:</b>{[{repo.description}]}<br/>
+		<b>Url:</b>{[{repo.url}]}
+
+	</div>
+	<div class="ui segment">
+		<div class="ui top attached tabular menu" id="repoTab">
+			<a class="active item" data-tab="commits"><i class="ui code icon"/>Commits</a>
+			<a class="item" data-tab="files"><i class="ui file outline icon"/>Files</a>
+			<a class="item" data-tab="graph"><i class="ui fork icon"/>Branches Graph</a>
+		</div>
+		<div class="ui bottom attached active tab segment" data-tab="commits">
+			<table class="ui attached celled table">
+				<thead>
+					<tr>
+						<th colspan="3" >
+							<div class="ui grid">
+								<div class="ten wide column">
+								</div>
+								<div class="six wide column right aligned">
+									<i class="ui backward icon" style="cursor:pointer;" ng-click="decPage()"/>
+									<div class="ui left labeled input">
+										<div class="ui basic label">
+											page
+										</div>
+										<input type="number" ng-model="page" ng-change="getCommits()" style="width:60px;" />
+									</div>
+									<i class="ui forward icon" style="cursor:pointer;" ng-click="incPage()"/>
+								</div>
+							</div>
+						</th>
+					</tr>
+					<tr>
+						<th>Date</th>
+						<th>Author</th>
+						<th>Message</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat="commit in commits">
+						<td  class="collapsing">{[{commit.date | date:'medium'}]}</td>
+						<td  class="collapsing"><img gravatar-src="commit.email" gravatar-size="40" class="ui image middle aligned" style="margin-right:5px;"><span>{[{commit.author}]} - {[{commit.email}]}</span></td>
+						<td>{[{commit.message}]}</td>
+					</tr>
+				</tbody>
+				<tfoot>
+					<tr>
+						<th colspan="3" style="text-align:right;">
+							<select ng-model="count" ng-change="getCommits()" class="ui compact selection dropdown" style="padding-bottom:0px;padding-top:0px;padding-right:5px;">
+								<option value="10" ng-selected="count==10">10</option>
+								<option value="20" ng-selected="count==20">20</option>
+								<option value="50" ng-selected="count==50">50</option>
+								<option value="100" ng-selected="count==100">100</option>
+							</select>
+						</th>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+		<div class="ui bottom attached  tab segment" data-tab="files">
+			<table class="ui attached celled table">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Last commit</th>	
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat="file in files">
+						<td ng-click="openFile(file)">
+							<i class="ui folder icon" ng-show="file.isDir"/>
+							<i class="ui file icon" ng-hide="file.isDir"/>
+							{[{file.name}]}
+						</td>
+						<td></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<script type="text/javascript">
+			$('#repoTab .item').tab();
+		</script>
+	</div>
 </div>
-<table class="ui attached celled table">
-	<thead>
-		<tr>
-			<th>Date<i class="sort descending icon" style="cursor:pointer;" ng-hide="ascending" ng-click="changeSort()" /><i class="sort ascending icon" style="cursor:pointer;" ng-show="ascending" ng-click="changeSort()"/></th>
-			<th>Author</th>
-			<th>Message</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr ng-repeat="commit in commits">
-			<td  class="collapsing">{[{commit.date | date:'medium'}]}</td>
-			<td  class="collapsing">{[{commit.author}]} - {[{commit.email}]}</td>
-			<td>{[{commit.message}]}</td>
-		</tr>
-	</tbody>
-</table>

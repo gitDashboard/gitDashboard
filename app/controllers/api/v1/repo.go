@@ -23,6 +23,16 @@ func (ctrl *RepoCtrl) getRepo(fullPath string) models.Repo {
 	return repo
 }
 
+func readRepoDescription(repoPath string, repoInfo *response.RepoInfo) {
+	//read description
+	descCnt, err := ioutil.ReadFile(repoPath + "/description")
+	if err == nil {
+		repoInfo.Description = string(descCnt)
+	} else {
+		revel.ERROR.Println(err.Error())
+	}
+}
+
 func (ctrl *RepoCtrl) checkIsRepo(basePath, repoPath string, repoInfo *response.RepoInfo) error {
 	fullRepoPath := controllers.CleanSlashes(repoPath + "/" + repoInfo.Name)
 	repoInfo.Path = strings.Replace(fullRepoPath, basePath, "", 1)
@@ -30,13 +40,7 @@ func (ctrl *RepoCtrl) checkIsRepo(basePath, repoPath string, repoInfo *response.
 	if repo.ID > 0 {
 		repoInfo.ID = repo.ID
 		repoInfo.IsRepo = true
-		//read description
-		descCnt, err := ioutil.ReadFile(fullRepoPath + "/description")
-		if err == nil {
-			repoInfo.Description = string(descCnt)
-		} else {
-			revel.ERROR.Println(err.Error())
-		}
+		readRepoDescription(fullRepoPath, repoInfo)
 		//checking permission
 		authorized, err := CheckAutorization(ctrl.Tx, fullRepoPath, ctrl.User.Username, "read", "")
 		if err != nil {
@@ -146,30 +150,28 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 	}
 	resp.Success = true
 	resp.Commits = make([]response.RepoCommit, 0)
-	var sort git.SortType
-	sort = git.SortTopological | git.SortTime
-	if !req.Ascending {
-		sort = sort | git.SortReverse
-	}
-	walk.Sorting(sort)
+	walk.Sorting(git.SortTopological | git.SortTime | git.SortReverse)
 
 	walk.HideGlob("tags/*")
 	end := req.Start + req.Count
-	revParsePar := fmt.Sprintf("%s~%d..%s~%d", refName, req.Start, refName, end)
-	revel.INFO.Printf("revParse:%s\n", revParsePar)
-	revRange, err := repo.Revparse(revParsePar)
-	if err == nil {
-		if revRange.From() != nil {
-			walk.Push(revRange.From().Id())
-		} else {
-			goto end
-		}
-		if revRange.To() != nil {
-			walk.Hide(revRange.To().Id())
-		}
-	} else {
-		revel.ERROR.Println(err.Error())
+
+	revStartPar := fmt.Sprintf("%s~%d", refName, req.Start)
+	revel.INFO.Printf("revStart:%s\n", revStartPar)
+	revStart, err := repo.Revparse(revStartPar)
+	var revEndPar string
+	var revEnd *git.Revspec
+	if err != nil {
 		goto end
+	} else {
+		walk.Push(revStart.From().Id())
+	}
+	revEndPar = fmt.Sprintf("%s~%d", refName, end)
+	revel.INFO.Printf("revEnd:%s\n", revEndPar)
+	revEnd, err = repo.Revparse(revEndPar)
+	if err != nil {
+		revel.WARN.Println("Requested range before first commit error:", err.Error())
+	} else {
+		walk.Hide(revEnd.From().Id())
 	}
 
 	walk.Iterate(func(commit *git.Commit) bool {
@@ -186,5 +188,129 @@ end:
 	walk.Free()
 	repo.Free()
 	revel.INFO.Printf("response: %+v\n", resp)
+	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
+	var dbRepo models.Repo
+	var resp response.RepoInfoResponse
+
+	ctrl.Tx.First(&dbRepo, repoId)
+	if dbRepo.ID != uint(repoId) {
+		resp.Success = false
+		resp.Error = response.NoRepositoryFoundError
+		return ctrl.RenderJson(resp)
+	}
+	//checking permission
+	authorized, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	if !authorized {
+		resp.Success = false
+		resp.Error = response.PermissionDeniedError
+		return ctrl.RenderJson(resp)
+	}
+	resp.Info.Path = "/" + strings.Replace(dbRepo.Path, revel.Config.StringDefault("git.baseDir", "/"), "", 1)
+	resp.Info.FolderPath = resp.Info.Path[0:strings.LastIndex(resp.Info.Path, "/")]
+	resp.Info.Url = revel.Config.StringDefault("git.baseUrl", "/") + "/" + resp.Info.Path
+	resp.Info.ID = dbRepo.ID
+	readRepoDescription(dbRepo.Path, &resp.Info)
+	resp.Success = true
+	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
+	var dbRepo models.Repo
+	var resp response.RepoFilesResponse
+	var req request.RepoFilesRequest
+
+	err := ctrl.GetJSONBody(&req)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		revel.ERROR.Println(err.Error())
+		return ctrl.RenderJson(resp)
+	}
+
+	ctrl.Tx.First(&dbRepo, repoId)
+	if dbRepo.ID != uint(repoId) {
+		resp.Success = false
+		resp.Error = response.NoRepositoryFoundError
+		return ctrl.RenderJson(resp)
+	}
+	//checking permission
+	authorized, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	if !authorized {
+		resp.Success = false
+		resp.Error = response.PermissionDeniedError
+		return ctrl.RenderJson(resp)
+	}
+	repo, err := git.OpenRepository(dbRepo.Path)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	//find last commit
+	rev, err := repo.Revparse(req.RefName)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		repo.Free()
+		return ctrl.RenderJson(resp)
+	}
+	lastCommit, err := repo.LookupCommit(rev.From().Id())
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		repo.Free()
+		return ctrl.RenderJson(resp)
+	}
+	var tree *git.Tree
+	if req.Parent == "" {
+		tree, err = lastCommit.Tree()
+	} else {
+		oid, _ := git.NewOid(req.Parent)
+		tree, err = repo.LookupTree(oid)
+	}
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		lastCommit.Free()
+		repo.Free()
+		return ctrl.RenderJson(resp)
+	}
+	resp.Files = make([]response.RepoFile, tree.EntryCount(), tree.EntryCount())
+
+	for i := uint64(0); i < tree.EntryCount(); i++ {
+		var respFile response.RepoFile
+		fileEntry := tree.EntryByIndex(i)
+		respFile.Id = fileEntry.Id.String()
+		respFile.Name = fileEntry.Name
+		if fileEntry.Type == git.ObjectTree {
+			respFile.IsDir = true
+		}
+		resp.Files[i] = respFile
+		revel.INFO.Printf("%+v\n", fileEntry)
+	}
+	resp.Success = true
+	tree.Free()
+	lastCommit.Free()
+	repo.Free()
 	return ctrl.RenderJson(resp)
 }

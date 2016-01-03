@@ -14,7 +14,17 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		});
 		return respDef.promise;
 	};
-	function commits(repoId,branch,start,count,ascending){
+	function info(repoId){
+		var respDef = $q.defer();
+		$http.get("api/v1/repo/"+repoId+"/info").success(function (data){
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	}
+
+	function commits(repoId,branch,start,count){
 		if (branch==undefined){
 			branch = "master";
 		}
@@ -22,21 +32,44 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 			"repoId":repoId,
 			"branch":branch,
 			"start":start,
-			"count":count,
-			"ascending":ascending
+			"count":count
 		};
 		console.log(req);
 		var respDef = $q.defer();
 		$http.post("api/v1/repo/"+repoId+"/commits",req).success(function (data){
 			respDef.resolve(data);
 		}).error(function (data,status){
-			respDef.reject("Error: "+data+" Status:"+status);
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	};
+
+	function files(repoId,refName,parent){
+		if (refName==undefined){
+			refName = "master";
+		}
+		if (parent==undefined){
+			parent=""
+		}
+		var req ={
+			"repoId":repoId,
+			"refName":refName,
+			"parent":parent,
+		};
+		console.log(req);
+		var respDef = $q.defer();
+		$http.post("api/v1/repo/"+repoId+"/files",req).success(function (data){
+			respDef.resolve(data);
+		}).error(function (data,status){
+			respDef.reject({"error":data,"status":status} );
 		});
 		return respDef.promise;
 	};
 
 	return {
 		"list":list,
-		"commits":commits
+		"commits":commits,
+		"info":info,
+		"files":files
 	};
 }]);
