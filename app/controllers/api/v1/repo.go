@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/gitDashboard/client/v1/request"
 	"github.com/gitDashboard/client/v1/response"
@@ -10,6 +11,7 @@ import (
 	git "gopkg.in/libgit2/git2go.v22"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -55,6 +57,12 @@ func (ctrl *RepoCtrl) checkIsRepo(basePath, repoPath string, repoInfo *response.
 	return nil
 }
 
+type ByIsRepo []response.RepoInfo
+
+func (a ByIsRepo) Len() int           { return len(a) }
+func (a ByIsRepo) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByIsRepo) Less(i, j int) bool { return !a[i].IsRepo && a[j].IsRepo || a[i].Name < a[j].Name }
+
 func (ctrl *RepoCtrl) List() revel.Result {
 	var req request.RepoListRequest
 	var resp response.RepoListResponse
@@ -83,8 +91,8 @@ func (ctrl *RepoCtrl) List() revel.Result {
 	}
 	resp.Repositories = make([]response.RepoInfo, 0, len(finfo))
 	for _, f := range finfo {
-		revel.INFO.Println("check ", f.Name())
-		if f.IsDir() {
+		revel.INFO.Println("check ", f.Name(), f.Mode())
+		if f.IsDir() || (f.Mode()&os.ModeSymlink != 0) {
 			var repoInfo response.RepoInfo
 			repoInfo.Name = f.Name()
 
@@ -96,6 +104,7 @@ func (ctrl *RepoCtrl) List() revel.Result {
 			resp.Repositories = append(resp.Repositories, repoInfo)
 		}
 	}
+	sort.Sort(ByIsRepo(resp.Repositories))
 	revel.INFO.Printf("result %+v\n ", resp)
 	return ctrl.RenderJson(resp)
 }
@@ -140,7 +149,7 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 		resp.Error.Message = resp.Error.Message + err.Error()
 		return ctrl.RenderJson(resp)
 	}
-	refName := "refs/heads/" + req.Branch
+	refName := req.Branch
 	walk, err := repo.Walk()
 	if err != nil {
 		resp.Success = false
@@ -150,11 +159,9 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 	}
 	resp.Success = true
 	resp.Commits = make([]response.RepoCommit, 0)
-	walk.Sorting(git.SortTopological | git.SortTime | git.SortReverse)
+	walk.Sorting(git.SortTopological | git.SortTime)
 
-	walk.HideGlob("tags/*")
 	end := req.Start + req.Count
-
 	revStartPar := fmt.Sprintf("%s~%d", refName, req.Start)
 	revel.INFO.Printf("revStart:%s\n", revStartPar)
 	revStart, err := repo.Revparse(revStartPar)
@@ -214,14 +221,45 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 		resp.Error = response.PermissionDeniedError
 		return ctrl.RenderJson(resp)
 	}
+
+	repo, err := git.OpenRepository(dbRepo.Path)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	refIt, err := repo.NewReferenceIterator()
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		repo.Free()
+		return ctrl.RenderJson(resp)
+	}
+	refNameIt := refIt.Names()
+	refName, refNameErr := refNameIt.Next()
+	for refNameErr == nil {
+		resp.Info.References = append(resp.Info.References, refName)
+		refName, refNameErr = refNameIt.Next()
+	}
+	refIt.Free()
+
 	resp.Info.Path = "/" + strings.Replace(dbRepo.Path, revel.Config.StringDefault("git.baseDir", "/"), "", 1)
 	resp.Info.FolderPath = resp.Info.Path[0:strings.LastIndex(resp.Info.Path, "/")]
 	resp.Info.Url = revel.Config.StringDefault("git.baseUrl", "/") + "/" + resp.Info.Path
 	resp.Info.ID = dbRepo.ID
 	readRepoDescription(dbRepo.Path, &resp.Info)
 	resp.Success = true
+	repo.Free()
 	return ctrl.RenderJson(resp)
 }
+
+type ByFolder []response.RepoFile
+
+func (a ByFolder) Len() int           { return len(a) }
+func (a ByFolder) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByFolder) Less(i, j int) bool { return a[i].IsDir && !a[j].IsDir || a[i].Name < a[j].Name }
 
 func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 	var dbRepo models.Repo
@@ -286,6 +324,9 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 	} else {
 		oid, _ := git.NewOid(req.Parent)
 		tree, err = repo.LookupTree(oid)
+		if err != nil {
+			resp.ParentTreeId = req.Parent
+		}
 	}
 	if err != nil {
 		resp.Success = false
@@ -308,9 +349,64 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 		resp.Files[i] = respFile
 		revel.INFO.Printf("%+v\n", fileEntry)
 	}
+	sort.Sort(ByFolder(resp.Files))
 	resp.Success = true
 	tree.Free()
 	lastCommit.Free()
+	repo.Free()
+	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *RepoCtrl) FileContent(repoId int, fileRef string) revel.Result {
+	var dbRepo models.Repo
+	var resp response.RepoFileContentResponse
+	revel.INFO.Printf("FileContent repoId:%d fileRef:%s\n", repoId, fileRef)
+
+	ctrl.Tx.First(&dbRepo, repoId)
+	if dbRepo.ID != uint(repoId) {
+		resp.Success = false
+		resp.Error = response.NoRepositoryFoundError
+		return ctrl.RenderJson(resp)
+	}
+	//checking permission
+	authorized, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	if !authorized {
+		resp.Success = false
+		resp.Error = response.PermissionDeniedError
+		return ctrl.RenderJson(resp)
+	}
+	repo, err := git.OpenRepository(dbRepo.Path)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	fileOid, err := git.NewOid(fileRef)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	blobFile, err := repo.LookupBlob(fileOid)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		repo.Free()
+		return ctrl.RenderJson(resp)
+	}
+	resp.Success = true
+	resp.Size = blobFile.Size()
+	resp.Content = base64.StdEncoding.EncodeToString(blobFile.Contents())
+	blobFile.Free()
 	repo.Free()
 	return ctrl.RenderJson(resp)
 }

@@ -5,15 +5,15 @@
 			<th>Description</th>
 		</thead>
 		<tr ng-show="hasParent()">
-			<td>
-				<a ng-click="upDir()">...</a>
+			<td class="clickable">
+				<a ng-click="upDir()"><i class="ui up arrow icon"/></a>
 			</td>
 			<td>
 			</td>
 		</tr>
 		<tr ng-repeat="repo in repositories">
 			<td>
-			<div style="display:inline;" ng-click="showRepo(repo.path,repo)">
+			<div style="display:inline;" ng-click="showRepo(repo.path,repo)" class="clickable">
 					<i class="ui folder icon" ng-hide="repo.isRepo"></i>
 					<i class="ui code icon" ng-show="repo.isRepo"></i>
 					<i class="ui lock icon" ng-hide="repo.isAuthorized"></i>

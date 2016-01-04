@@ -22,7 +22,17 @@ type AuthorizationCtrl struct {
 func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string) (bool, error) {
 	var user models.User
 	//finding user
-	db.Where("username = ?", username).First(&user)
+	db.Preload("Groups").Where("username = ?", username).First(&user)
+	//searching for admin group
+	isAdmin := false
+	for _, grp := range user.Groups {
+		if grp.Name == "admin" {
+			isAdmin = true
+		}
+	}
+	if isAdmin {
+		return true, nil
+	}
 	//finding repo
 	var repo models.Repo
 	db.Where("path = ?", repoDir).First(&repo)

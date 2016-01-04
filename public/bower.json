@@ -22,6 +22,8 @@
     "angular-local-storage": "~0.2.3",
     "angular-jwt": "~0.0.9",
     "angular-route": "~1.4.8",
-    "angular-gravatar": "~0.4.1"
+    "angular-gravatar": "~0.4.1",
+    "codemirror": "~5.10.0",
+    "angular-ui": "~0.4.0"
   }
 }

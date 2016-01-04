@@ -1,4 +1,4 @@
-var gitDashboard = angular.module("gitDashboard",['ngRoute','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar']);
+var gitDashboard = angular.module("gitDashboard",['ngRoute','ui','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar']);
 
 gitDashboard.config(function($interpolateProvider) {
 	$interpolateProvider.startSymbol('{[{');
@@ -14,6 +14,8 @@ gitDashboard.config(function ($httpProvider, jwtInterceptorProvider) {
 	jwtInterceptorProvider.tokenGetter = ['localStorageService', localStorageService];
 	$httpProvider.interceptors.push('jwtInterceptor');
 });
+
+
 
 gitDashboard.config(['$routeProvider', '$locationProvider',function ($routeProvider,$locationProvider) {
 	$routeProvider.
@@ -142,7 +144,7 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		}
 	}
 	$scope.getCommits=function(){
-		Repo.commits(repoId,null,($scope.page-1)*parseInt($scope.count),parseInt($scope.count),$scope.ascending).then(function(data){
+		Repo.commits(repoId,$scope.currRef,($scope.page-1)*parseInt($scope.count),parseInt($scope.count),$scope.ascending).then(function(data){
 			console.log(data);
 			if (data.success){
 				$scope.commits = data.commits;
@@ -155,9 +157,18 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		});
 	}
 	$scope.getFiles=function(parent){
-		Repo.files(repoId,null,parent).then(function(data){
+		if (parent==null){
+			$scope.currPath=[];
+			parentId=null;
+		}else{
+			parentId = parent.id;
+		}
+		$scope.currPath.push(parent);
+		console.log($scope.currPath);
+		Repo.files(repoId,$scope.currRef,parentId).then(function(data){
 			console.log(data);
 			if (data.success){
+				$scope.parentTreeId = data.parentTreeId;
 				$scope.files = data.files;
 			}
 		},function(error){
@@ -167,12 +178,79 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 			}
 		});
 	}
+	$scope.inFolder=function(){
+		return $scope.currPath.length>1;
+	}
+	$scope.upFilesDir=function(){
+		if ($scope.currPath.length>0){
+			$scope.currPath.pop();//current
+			parent = $scope.currPath.pop();
+			$scope.getFiles(parent);
+			$scope.fileContent=null;
+		}
+	}
+	$scope.getPath=function(){
+		var strPath = "";
+		for (var i=0;i<$scope.currPath.length;i++){
+			if ($scope.currPath[i]!=null){
+				strPath+="/"+$scope.currPath[i].name;
+			}
+		}
+		if ($scope.file!=null){
+			strPath+="/"+$scope.file.name;
+		}
+		return strPath;
+	}
+
+	 $scope.codemirrorLoaded = function(_editor){
+	 	console.log(_editor);
+	 }
+
+	$scope.cmOption ={
+		lineNumbers: true,
+		matchBrackets: true,
+		readOnly:true
+	};
+
 	$scope.openFile=function(file){
 		if (file.isDir){
-			$scope.getFiles(file.id);
+			$scope.getFiles(file);
+			$scope.file=null;
+			$scope.showFile=false;
+		}else{
+			$scope.showFile=true;
+			Repo.fileContent(repoId,file.id).then(function(data){
+				console.log(data);
+				if (data.success){
+					$scope.file={
+						content:atob(data.content),
+						name:file.name
+					};
+					$scope.fileContent=$scope.file.content;
+					console.log($scope.file);
+					var codeMirrorInstance = $('.CodeMirror')[0].CodeMirror;
+					if (file.name.indexOf("xml")>-1){
+						codeMirrorInstance.setOption("mode","text/xml")
+					}
+					if (file.name.indexOf("java")>-1){
+						codeMirrorInstance.setOption("mode","text/x-java")
+					}
+					
+				}else{
+					alert(data.error.message)
+				}
+			},function(error){
+				console.log(error);
+				if (error.status==401){
+					$location.path("login");
+				}
+			});
 		}
 		console.log(file);
 	}
+	$scope.showFile=false;
+	$scope.currRef="refs/heads/master";	
+	$scope.currPath=[];
 	$scope.getCommits();
 	$scope.getFiles(null);
 }]);	

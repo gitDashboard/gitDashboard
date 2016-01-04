@@ -8,7 +8,7 @@
 			<input type="password" ng-model="password" placeholder="password"/>
 		</div>
 		<div class="field">
-			<div class="ui selection dropdown">
+			<div class="ui selection dropdown" id="loginTypeSel">
 				<input type="hidden" ng-model="type">
 				<i class="dropdown icon"></i>
 				<div class="default text">Type</div>
@@ -17,7 +17,7 @@
 				</div>
 			</div>
 			<script type="text/javascript">
-				$('.ui.dropdown').dropdown({
+				$('#loginTypeSel').dropdown({
 					onChange: function (value, text, choice) {
 						$(this).scope().type = value;
 					}

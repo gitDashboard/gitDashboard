@@ -26,7 +26,7 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 
 	function commits(repoId,branch,start,count){
 		if (branch==undefined){
-			branch = "master";
+			branch = "refs/heads/master";
 		}
 		var req ={
 			"repoId":repoId,
@@ -66,10 +66,21 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;
 	};
 
+	function fileContent(repoId,fileRef){
+		var respDef = $q.defer();
+		$http.get("api/v1/repo/"+repoId+"/file/"+fileRef).success(function (data){
+			respDef.resolve(data);
+		}).error(function (data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;	
+	}
+
 	return {
 		"list":list,
 		"commits":commits,
 		"info":info,
-		"files":files
+		"files":files,
+		"fileContent":fileContent
 	};
 }]);
