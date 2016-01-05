@@ -84,7 +84,7 @@
 		</div>
 		<div class="ui bottom attached  tab segment" data-tab="files">
 			<div class="ui attached basic segment">
-				<div class="ui selection dropdown" id="refFileSel">
+				<div class="ui selection dropdown" id="refFileSel" ng-class="{disabled:showFile}">
 					<input type="hidden" name="currRefFld" ng-model="currRef">
 					<i class="dropdown icon"></i>
 					<div class="default text">{[{currRef}]}</div>
