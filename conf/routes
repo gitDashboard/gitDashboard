@@ -18,6 +18,14 @@ POST	/api/v1/repo/:repoId/files				RepoCtrl.Files
 GET	/api/v1/repo/:repoId/file/:fileRef				RepoCtrl.FileContent
 GET	/api/v1/repo/:repoId/info					RepoCtrl.Info
 
+PUT	/api/v1/admin/repo/mkdir				AdminRepo.CreateFolder
+PUT	/api/v1/admin/repo/create				AdminRepo.CreateRepo
+GET	/api/v1/admin/repo/:repoId/permissions			AdminRepo.Permissions
+POST	/api/v1/admin/repo/:repoId/permissions			AdminRepo.UpdatePermissions
+
+GET 	/api/v1/admin/user/search 				AdminUser.Search
+GET 	/api/v1/admin/user/list 					AdminUser.List
+
 # Map static resources from the /app/public folder to the /public path
 GET     /public/*filepath                       				Static.Serve("public")
 

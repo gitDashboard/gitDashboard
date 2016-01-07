@@ -1,5 +1,64 @@
 <div ng-controller="ReposController">
-	<table class="ui celled table">
+	<div class="ui icon menu attached  blue inverted " >
+		<a class="item" ng-show="hasParent()" ng-click="upDir()" title="up folder">
+			<i class="up big arrow icon"  />
+		</a>
+		<a class="item" ng-show="getUser().IsAdmin()" title="create folder"  onclick="$('#createFolderPopup').modal('show');">
+			<i class=" big icons">
+				<i class="folder icon"   />
+				<i class="corner green  add icon"   />
+			</i>
+		</a>
+		<a class="item" ng-show="getUser().IsAdmin()" title="create repository" onclick="$('#createRepoPopup').modal('show');">
+			<i class=" big icons" >
+				<i class="code icon"   />
+				<i class="corner green  add icon"   />
+			</i>
+		</a>
+	</div>
+	<div id="createFolderPopup" class="ui modal">
+		<i class="close icon"></i>
+		<div class="header">
+			Create new Folder
+		</div>
+		<div class="content">
+			<form class="ui form">
+				<div class="field">
+					<label>Folder Name:</label>
+					<input type="text" ng-model="newFolderName" />
+				</div>
+				<div class="ui icon green button" ng-click="createFolder()">
+					<i class="ui save icon"/>
+					Create Folder
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div id="createRepoPopup" class="ui modal">
+		<i class="close icon"></i>
+		<div class="header">
+			Create new Repository
+		</div>
+		<div class="content">
+			<form class="ui form">
+				<div class="field">
+					<label>Repository Name:</label>
+					<input type="text" ng-model="newRepoName" />
+				</div>
+				<div class="field">
+					<label>Repository Description:</label>
+					<input type="text" ng-model="newRepoDescription" />
+				</div>
+				<div class="ui icon green button" ng-click="createRepo()">
+					<i class="ui save icon"/>
+					Create Repository
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<table class="ui celled table attached ">
 		<thead>
 			<th>Name</th>
 			<th>Description</th>
@@ -13,8 +72,8 @@
 		</tr>
 		<tr ng-repeat="repo in repositories">
 			<td>
-			<div style="display:inline;" ng-click="showRepo(repo.path,repo)" class="clickable">
-					<i class="ui folder icon" ng-hide="repo.isRepo"></i>
+				<div style="display:inline;" ng-click="showRepo(repo.path,repo)" class="clickable">
+					<i class="ui orange folder icon" ng-hide="repo.isRepo"></i>
 					<i class="ui code icon" ng-show="repo.isRepo"></i>
 					<i class="ui lock icon" ng-hide="repo.isAuthorized"></i>
 					{[{repo.name}]}

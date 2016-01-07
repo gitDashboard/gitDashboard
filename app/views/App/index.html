@@ -5,6 +5,7 @@
 	{{template "header.html"}}
 	<script type="text/javascript" src="public/js/services/authService.js"></script>
 	<script type="text/javascript" src="public/js/services/reposService.js"></script>
+	<script type="text/javascript" src="public/js/services/userService.js"></script>
 	<script type="text/javascript" src="public/js/app.js"></script>
 </head>
 <body ng-controller="MainCtrl">
@@ -27,6 +28,9 @@
 			</a>
 			<a class="item" href="#/">
 				<i class="grid layout icon"></i> Browse
+			</a>
+			<a class="item" href="#/users" ng-show="getUser().IsAdmin()">
+				<i class="users layout icon"></i> Users
 			</a>
 			<div class="right item">
 				<div class="ui input"><input type="text" placeholder="Search..."></div>

@@ -61,7 +61,7 @@ type ByIsRepo []response.RepoInfo
 
 func (a ByIsRepo) Len() int           { return len(a) }
 func (a ByIsRepo) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByIsRepo) Less(i, j int) bool { return !a[i].IsRepo && a[j].IsRepo || a[i].Name < a[j].Name }
+func (a ByIsRepo) Less(i, j int) bool { return (!a[i].IsRepo && a[j].IsRepo) || (a[i].Name < a[j].Name) }
 
 func (ctrl *RepoCtrl) List() revel.Result {
 	var req request.RepoListRequest
@@ -70,7 +70,7 @@ func (ctrl *RepoCtrl) List() revel.Result {
 	if err != nil {
 		return ctrl.RenderError(err)
 	}
-	baseDirPath := revel.Config.StringDefault("git.baseDir", "/")
+	baseDirPath := controllers.GitBasePath()
 	currDirPath := controllers.CleanSlashes(baseDirPath + "/" + req.SubPath)
 	revel.INFO.Println("Reading repositories from path:", currDirPath)
 
@@ -245,9 +245,9 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 	}
 	refIt.Free()
 
-	resp.Info.Path = "/" + strings.Replace(dbRepo.Path, revel.Config.StringDefault("git.baseDir", "/"), "", 1)
+	resp.Info.Path = "/" + strings.Replace(dbRepo.Path, controllers.GitBasePath(), "", 1)
 	resp.Info.FolderPath = resp.Info.Path[0:strings.LastIndex(resp.Info.Path, "/")]
-	resp.Info.Url = revel.Config.StringDefault("git.baseUrl", "/") + "/" + resp.Info.Path
+	resp.Info.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(resp.Info.Path)
 	resp.Info.ID = dbRepo.ID
 	readRepoDescription(dbRepo.Path, &resp.Info)
 	resp.Success = true

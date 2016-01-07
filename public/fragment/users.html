@@ -1,0 +1,48 @@
+<div ng-controller="UsersController" class="ui segment">
+<h2 class="header attached">
+Users Management
+</h2>
+	<form class="ui form">
+	<table class="ui celled table">
+		<thead>
+			<tr>
+				<th>Username</th>
+				<th>Type</th>
+				<th>Password</th>
+				<th>Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr ng-repeat="user in users">
+				<td><input type="text" ng-model="user.username"/></td>
+				<td>
+					<select ng-model="user.type">
+						<option value="internal">Internal</option>
+						<option value="ldap">LDAP</option>
+					</select>
+				</td>
+				<td>
+					<input type="password" ng-model="user.password"/>
+				</td>
+				<td>
+					<div class="ui icon button">
+						<i class="ui save green icon" ng-click="saveUser(user)"/>
+					</div>
+					<div class="ui icon button">
+						<i class="ui trash red icon" ng-click="deleteUser(user)"/>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="4">
+					<div class="ui icon button" ng-click="addUser()">
+						<i class="add icon"/>
+						Add User
+					</div>
+				</td>
+			</tr>
+		</tr>
+	</tbody>
+</table>
+</form>
+</div>

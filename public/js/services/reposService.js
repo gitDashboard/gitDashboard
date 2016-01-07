@@ -76,11 +76,66 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;	
 	}
 
+	function createFolder(path){
+		var req={
+			'path':path
+		}
+		var respDef = $q.defer();
+		$http.put("api/v1/admin/repo/mkdir",req).success(function (data){
+			respDef.resolve(data);
+		}).error(function (data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;	
+	}
+
+	function createRepo(path,description){
+		var req={
+			'path':path,
+			'description':description
+		}
+		var respDef = $q.defer();
+		$http.put("api/v1/admin/repo/create",req).success(function (data){
+			respDef.resolve(data);
+		}).error(function (data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;	
+	}
+
+	function permissions(repoId){
+		var respDef = $q.defer();
+		$http.get("api/v1/admin/repo/"+repoId+"/permissions").success(function (data){
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	}
+
+	function updatePermissions(repoId,permissions){
+		var respDef = $q.defer();
+		var req={
+			permissions:permissions
+		};
+		$http.post("api/v1/admin/repo/"+repoId+"/permissions",req).success(function (data){
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	}
+
 	return {
 		"list":list,
 		"commits":commits,
 		"info":info,
 		"files":files,
-		"fileContent":fileContent
+		"fileContent":fileContent,
+		'createFolder':createFolder,
+		'createRepo':createRepo,
+		'permissions':permissions,
+		'updatePermissions':updatePermissions
+
 	};
 }]);

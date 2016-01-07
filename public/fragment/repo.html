@@ -1,16 +1,24 @@
 <div class="">
 	<div class="ui icon menu attached  blue inverted " >
-		<a class="item">
-			<i class="up arrow icon" ng-click="returnToFolder()" />
+		<a class="item" ng-click="returnToFolder()">
+			<i class="up big arrow icon"  />
+		</a>
+		<a class="item" ng-show="getUser().IsAdmin()" title="manage permissions" ng-click="getPermissions();currView='public/fragment/repo/permission.html';">
+			<i class=" big icons">
+				<i class="user icon"   />
+				<i class="corner green lock icon"   />
+			</i>
 		</a>
 	</div>
-	<div class="ui segment bottom attached">
+	<div ng-include="currView"></div>
+
+	<div class="ui segment  attached">
 		<b>Path:</b>{[{repo.path}]} <b><br/>
 		Description:</b>{[{repo.description}]}<br/>
 		<b>Url:</b>{[{repo.url}]}
 
 	</div>
-	<div class="ui segment">
+	<div class="ui segment attached">
 		<div class="ui top attached tabular menu" id="repoTab">
 			<a class="active item" data-tab="commits"><i class="ui code icon"/>Commits</a>
 			<a class="item" data-tab="files"><i class="ui file outline icon"/>Files</a>
@@ -56,7 +64,7 @@
 					<div  class="four wide column" ><b>Author</b></div>
 					<div  class="nine wide column" ><b>Message</b></div>
 				</div>
-				<div class="row" ng-repeat="commit in commits">
+				<div class="row" style="border-bottom:1px solid #CCCCCC;" ng-repeat="commit in commits">
 					<div  class="three wide column middle aligned" >{[{commit.date | date:'medium'}]}</div>
 					<div  class="four wide column" >
 						<div class="ui grid">
@@ -83,7 +91,7 @@
 			
 		</div>
 		<div class="ui bottom attached  tab segment" data-tab="files">
-			<div class="ui attached basic segment">
+			<div>
 				<div class="ui selection dropdown" id="refFileSel" ng-class="{disabled:showFile}">
 					<input type="hidden" name="currRefFld" ng-model="currRef">
 					<i class="dropdown icon"></i>
@@ -125,8 +133,24 @@
 					</div>
 				</div>
 			</div>
-			<div class="ui segment" ng-show="showFile">
-			<textarea  ui-codemirror="cmOption" ng-model="file.content" rows="50"></textarea>
+			<div class="ui segment" ng-show="showFile" style="height:1000px;">
+				<textarea  id="fileContentTxtArea" ng-model="file.content" rows="100"></textarea>
+				<script type="text/javascript">
+					var fileEditor = CodeMirror.fromTextArea(document.getElementById("fileContentTxtArea"),{
+						lineNumbers: true,
+						matchBrackets: true,
+						readOnly:true,
+						extraKeys: {
+							"F11": function(cm) {
+								cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+							},
+							"Esc": function(cm) {
+								if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+							}
+						}
+					});
+					fileEditor.setSize("100%",950);
+				</script>
 			</div>
 		</div>
 		<script type="text/javascript">

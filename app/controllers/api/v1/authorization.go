@@ -38,7 +38,7 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 	db.Where("path = ?", repoDir).First(&repo)
 	//finding permissions
 	var perms []models.Permission
-	db.Where("repo_id = ? and user_id = ? and type=?", repo.ID, user.ID, operation).Find(&perms)
+	db.Where("repo_id = ? and user_id = ? and type like ?", repo.ID, user.ID, "%"+operation+"%").Find(&perms)
 	if len(perms) > 0 {
 		if operation != "read" {
 			for _, perm := range perms {

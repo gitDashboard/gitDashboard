@@ -1,4 +1,4 @@
-var gitDashboard = angular.module("gitDashboard",['ngRoute','ui','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar']);
+var gitDashboard = angular.module("gitDashboard",['ngRoute','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar','userService']);
 
 gitDashboard.config(function($interpolateProvider) {
 	$interpolateProvider.startSymbol('{[{');
@@ -33,6 +33,11 @@ gitDashboard.config(['$routeProvider', '$locationProvider',function ($routeProvi
 		templateUrl:"public/fragment/repo.html",
 		controller:"RepoController",
 		controllerAs:"repo"
+	}).
+	when('/users',{
+		templateUrl:"public/fragment/users.html",
+		controller:"UsersController",
+		controllerAs:"users"
 	});
 }]);
 
@@ -55,6 +60,7 @@ gitDashboard.controller('MainCtrl', ['$scope','localStorageService','jwtHelper',
 		localStorageService.remove('jwt_token');
 		$location.path("login");
 	};
+
 }]);
 
 gitDashboard.controller('LoginController', ['$scope','Auth','localStorageService','$location', function ($scope,Auth,localStorageService,$location) {
@@ -74,11 +80,16 @@ gitDashboard.controller('LoginController', ['$scope','Auth','localStorageService
 }]);
 
 gitDashboard.controller('ReposController',['$scope','$location','Repo','$routeParams',function($scope,$location,Repo,$routeParams){
+	if (!$scope.isLogged()){
+		$location.path("login");	
+	}
 	if ($routeParams.path!=undefined){
 		$scope.currDir=$routeParams.path;
 	}else{
 		$scope.currDir="";
 	}
+	$scope.repositories =[];
+	
 	$scope.hasParent=function(){
 		return $scope.currDir!=""
 	}
@@ -90,7 +101,6 @@ gitDashboard.controller('ReposController',['$scope','$location','Repo','$routePa
 			$location.path("").search({path:""});
 		}
 	}
-	$scope.repositories =[];
 	$scope.showRepo=function(path,repo){
 		if (repo!=null && repo.isRepo){
 			$location.path("repo/"+repo.id);
@@ -99,15 +109,57 @@ gitDashboard.controller('ReposController',['$scope','$location','Repo','$routePa
 			
 		}
 	}
-	Repo.list($scope.currDir).then(function(data){
-		console.log(data);
-		$scope.repositories = data.repositories;
-	},function(error){
-		console.log(error);
-		if (error.status==401){
-			$location.path("login");
+
+	$scope.createFolder=function(){
+		if($scope.newFolderName!=null && $scope.newFolderName!=""){
+			Repo.createFolder($scope.currDir+"/"+$scope.newFolderName).then(function(data){
+				if (data.success){
+					$('#createFolderPopup').modal('hide');
+					$scope.newFolderName=null;
+					$scope.list();
+				}else{
+					alert(data.error.message);
+				}
+			},function(error){
+				console.log(error);
+				if (error.status==401){
+					$location.path("login");
+				}
+			})
 		}
-	});
+	};
+	$scope.createRepo=function(){
+		if($scope.newRepoName!=null && $scope.newRepoName!=""){
+			Repo.createRepo($scope.currDir+"/"+$scope.newRepoName,$scope.newRepoDescription).then(function(data){
+				if (data.success){
+					$('#createRepoPopup').modal('hide');
+					$scope.newRepoName=null;
+					$scope.newRepoDescription=null;
+					$scope.list();
+				}else{
+					alert(data.error.message);
+				}
+			},function(error){
+				console.log(error);
+				if (error.status==401){
+					$location.path("login");
+				}
+			})
+		}
+	};
+
+	$scope.list=function(){
+		Repo.list($scope.currDir).then(function(data){
+			console.log(data);
+			$scope.repositories = data.repositories;
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		});
+	};
+	$scope.list();
 }]);
 
 gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$location',function($scope,$routeParams,Repo,$location){
@@ -202,15 +254,9 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		return strPath;
 	}
 
-	 $scope.codemirrorLoaded = function(_editor){
-	 	console.log(_editor);
-	 }
-
-	$scope.cmOption ={
-		lineNumbers: true,
-		matchBrackets: true,
-		readOnly:true
-	};
+	$scope.codemirrorLoaded = function(_editor){
+		console.log(_editor);
+	}
 
 	$scope.openFile=function(file){
 		if (file.isDir){
@@ -226,16 +272,14 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 						content:atob(data.content),
 						name:file.name
 					};
-					$scope.fileContent=$scope.file.content;
-					console.log($scope.file);
 					var codeMirrorInstance = $('.CodeMirror')[0].CodeMirror;
+					codeMirrorInstance.setOption("value",$scope.file.content);
 					if (file.name.indexOf("xml")>-1){
-						codeMirrorInstance.setOption("mode","text/xml")
+						codeMirrorInstance.setOption("mode","text/xml");
 					}
 					if (file.name.indexOf("java")>-1){
-						codeMirrorInstance.setOption("mode","text/x-java")
+						codeMirrorInstance.setOption("mode","text/x-java");
 					}
-					
 				}else{
 					alert(data.error.message)
 				}
@@ -248,6 +292,46 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		}
 		console.log(file);
 	}
+
+
+	$scope.getPermissions=function(){
+		Repo.permissions(repoId).then(function(data){
+			if (data.success){
+				$scope.permissions = data.permissions;
+			}else{
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		});
+	}
+	$scope.addPermission=function(){
+		$scope.permissions.push({
+			userName:"",
+			groupName:"",
+			type:"",
+			ref:""
+		});
+	}
+	$scope.removePermission=function(pos){
+		$scope.permissions.splice(pos,1);
+	}
+	$scope.selUser=function(permission){
+		$scope.currPerm=permission;
+		$('#searchUserPopup').modal('show');		
+	}
+
+	$scope.updatePermissions=function(){
+		Repo.updatePermissions(repoId,$scope.permissions);
+	}
+
+	$scope.setCurrView=function(view){
+		$scope.currView = view;
+	}
+
 	$scope.showFile=false;
 	$scope.currRef="refs/heads/master";	
 	$scope.currPath=[];
@@ -255,3 +339,48 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 	$scope.getFiles(null);
 }]);	
 
+
+gitDashboard.controller('SelUserController',['$scope','User','$location',function($scope,User,$location){
+	$scope.search=function(){
+		User.search($scope.username).then(function(data){
+			if (data.success){
+				$scope.foundedUsers=data.users;
+			}else{
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		});
+	}
+	$scope.selectUser=function(user){
+		$scope.currPerm.userName=user.username;
+		$scope.currPerm.userId=user.id;
+		$scope.currPerm.groupName =null;
+		$scope.currPerm.groupId =null;
+		$('#searchUserPopup').modal('hide');
+	}
+}]);
+
+gitDashboard.controller('UsersController',['$scope','User','$location',function($scope,User,$location){
+	$scope.list=function(){
+		User.list().then(function(data){
+			if (data.success){
+				$scope.users=data.users;
+			}else{
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		});
+	};
+	$scope.addUser= function(){
+		$scope.users.push(null);
+	}
+	$scope.list();
+}]);
