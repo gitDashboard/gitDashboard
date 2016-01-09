@@ -6,7 +6,12 @@
 	<script type="text/javascript" src="public/js/services/authService.js"></script>
 	<script type="text/javascript" src="public/js/services/reposService.js"></script>
 	<script type="text/javascript" src="public/js/services/userService.js"></script>
+	<script type="text/javascript" src="public/js/services/groupService.js"></script>
 	<script type="text/javascript" src="public/js/app.js"></script>
+	<script type="text/javascript" src="public/js/controllers/reposController.js"></script>
+	<script type="text/javascript" src="public/js/controllers/repoController.js"></script>
+	<script type="text/javascript" src="public/js/controllers/usersController.js"></script>
+	<script type="text/javascript" src="public/js/controllers/groupsController.js"></script>
 </head>
 <body ng-controller="MainCtrl">
 	<div class="ui one column doubling grid container">
@@ -30,7 +35,10 @@
 				<i class="grid layout icon"></i> Browse
 			</a>
 			<a class="item" href="#/users" ng-show="getUser().IsAdmin()">
-				<i class="users layout icon"></i> Users
+				<i class="user icon"></i> Users
+			</a>
+			<a class="item" href="#/groups" ng-show="getUser().IsAdmin()">
+				<i class="users icon"></i> Groups
 			</a>
 			<div class="right item">
 				<div class="ui input"><input type="text" placeholder="Search..."></div>

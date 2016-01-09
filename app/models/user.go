@@ -2,11 +2,10 @@ package models
 
 import (
 	"database/sql"
-	"github.com/jinzhu/gorm"
 )
 
 type User struct {
-	gorm.Model
+	ID          uint   `gorm:"primary_key"`
 	Username    string `sql:"not null;index"`
 	Type        string //internal/LDAP/...
 	Password    sql.NullString

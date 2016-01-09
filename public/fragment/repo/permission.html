@@ -37,8 +37,43 @@
 	</div>
 </div>
 
+<div class="ui modal" id="searchGroupPopup" ng-controller="SelGroupController">
+	<i class="ui close icon"/>
+	<div class="header">
+		Search Group
+	</div>
+	<div class="content">
+		<form class="ui form">
+			<div class="field">
+				<label>Name</label>
+				<input type="text" ng-model="name"/>
+			</div>
+			<div class="ui icon button" ng-click="search()"><i class="search  blue icon"/>Search</div>
+		</form>
+		<table class="ui celled table">
+			<thead>
+				<tr>
+					<th>Group Name</th>
+					<th>Sel</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="group in foundedGroups">
+					<td>
+						{[{group.name}]}
+					</td>
+					<td>
+						<div class="ui button" ng-click="selectGroup(group)">Sel</div>
+					</td>
+				</tr>
+			</tbody>
+			
+		</table>
+	</div>
+</div>
 
-<div class="ui segment" >
+
+<div class="ui attached segment" >
 	<h2 class="header">
 		Manage Repository Permission
 	</h2>
@@ -47,6 +82,7 @@
 			<table class="ui celled table">
 				<thead>
 					<tr>
+						<th class="collapsing" style="width:80px;">Position</th>
 						<th>User</th>
 						<th>Group</th>
 						<th>Operations</th>
@@ -57,6 +93,9 @@
 				</thead>
 				<tbody>
 					<tr ng-repeat="permission in permissions">
+						<td class="collapsing">
+							<input type="number" class="input" ng-model="permission.position"/>
+						</td>
 						<td>
 							<div class="ui icon input disabled">
 								<input type="text" ng-model="permission.userName">
@@ -66,34 +105,22 @@
 						<td>
 							<div class="ui icon input disabled">
 								<input type="text" ng-model="permission.groupName">
-								<i class="inverted circular search link icon" ></i>
+								<i class="inverted circular search link icon"  ng-click="selGroup(permission)"></i>
 							</div>
 						</td>
 						<td>
-							<div class="ui selection multiple dropdown" id="permDropDown">
-								<input type="hidden"  value="{[{permission.types}]}">
-								<i class="dropdown icon"></i>
-								<div class="default text">Operation</div>
-								<div class="menu">
-									<div class="item" data-value="read">Read</div>
-									<div class="item" data-value="commit">Commit</div>
-									<div class="item" data-value="delete">Delete</div>
-									<div class="item" data-value="tag">Modify Tag</div>
-								</div>
-							</div>
-							<script type="text/javascript">
-								$('#permDropDown').dropdown({
-									onChange: function (value, text, choice) {
-										$(this).scope().permission.types = value;
-									}
-								});
-							</script>
+							<select ng-model="permission.types" multiple="multiple">
+								<option value="read">Read</option>
+								<option value="commit">Commit</option>
+								<option value="delete">Delete</option>
+								<option value="tag">Modify Tag</option>
+							</select>
 						</td>
 						<td><input type="text" class="input" ng-model="permission.ref"/></td>
 						<td>
-							<div class="ui slider checkbox">
-								<input type="checkbox" class="input" ng-model="permission.granted"/>
-								<label></label>
+							<div class="ui toggle checkbox">
+								<input type="checkbox" class="input" ng-checked="permission.granted" ng-model="permission.granted"/>
+								<label></label>				
 							</div>
 						</td>
 						<td><div class="ui icon button" ng-click="removePermission($index)"><i class="red trash icon"></i></div></td>

@@ -79,7 +79,7 @@ func (ctrl *AdminRepo) CreateRepo() revel.Result {
 func (ctrl *AdminRepo) Permissions(repoId uint) revel.Result {
 	var resp response.GetPermissionsResponse
 	var dbRepo models.Repo
-	ctrl.Tx.Preload("Permissions").First(&dbRepo, repoId)
+	ctrl.Tx.First(&dbRepo, repoId)
 	if len(ctrl.Tx.GetErrors()) > 0 {
 		resp.Success = false
 		resp.Error = basicResponse.FatalError
@@ -90,11 +90,14 @@ func (ctrl *AdminRepo) Permissions(repoId uint) revel.Result {
 		resp.Error = basicResponse.NoRepositoryFoundError
 		return ctrl.RenderJson(resp)
 	}
+	ctrl.Tx.Order("position").Where("repo_id=?", dbRepo.ID).Find(&dbRepo.Permissions)
+
 	resp.Permissions = make([]response.RepoPermission, len(dbRepo.Permissions), len(dbRepo.Permissions))
 	for i, perm := range dbRepo.Permissions {
 		var repoPerm response.RepoPermission
-		repoPerm.Types = perm.Type
 		repoPerm.Ref = perm.Branch
+		repoPerm.Position = perm.Position
+		repoPerm.Granted = perm.Granted
 		if perm.UserID.Valid {
 			repoPerm.UserID = perm.UserID.Int64
 			//search user
@@ -106,8 +109,11 @@ func (ctrl *AdminRepo) Permissions(repoId uint) revel.Result {
 			repoPerm.GroupID = perm.GroupID.Int64
 			//search group
 			var dbGroup models.Group
-			ctrl.Tx.First(&dbGroup, perm.UserID)
+			ctrl.Tx.First(&dbGroup, perm.GroupID)
 			repoPerm.GroupName = dbGroup.Name
+		}
+		if perm.Type != "" {
+			repoPerm.Types = strings.Split(perm.Type, ",")
 		}
 		resp.Permissions[i] = repoPerm
 	}
@@ -145,11 +151,17 @@ func (ctrl *AdminRepo) UpdatePermissions(repoId uint) revel.Result {
 	//insert all new permissions
 	for _, newPerm := range req.Permissions {
 		dbPermission := models.Permission{
-			RepoID:  repoId,
-			Type:    newPerm.Types,
-			Branch:  newPerm.Ref,
-			Granted: newPerm.Granted,
+			RepoID:   repoId,
+			Branch:   newPerm.Ref,
+			Granted:  newPerm.Granted,
+			Position: newPerm.Position,
 		}
+		for _, permType := range newPerm.Types {
+			if permType != "" {
+				dbPermission.Type = dbPermission.Type + "," + permType
+			}
+		}
+		dbPermission.Type = dbPermission.Type[1:]
 		dbPermission.UserID.Scan(newPerm.UserID)
 		dbPermission.GroupID.Scan(newPerm.GroupID)
 		ctrl.Tx.Create(&dbPermission)

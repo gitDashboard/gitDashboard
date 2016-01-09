@@ -1,4 +1,4 @@
-var gitDashboard = angular.module("gitDashboard",['ngRoute','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar','userService']);
+var gitDashboard = angular.module("gitDashboard",['ngRoute','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar','userService','groupService','dtrw.bcrypt']);
 
 gitDashboard.config(function($interpolateProvider) {
 	$interpolateProvider.startSymbol('{[{');
@@ -38,6 +38,11 @@ gitDashboard.config(['$routeProvider', '$locationProvider',function ($routeProvi
 		templateUrl:"public/fragment/users.html",
 		controller:"UsersController",
 		controllerAs:"users"
+	}).
+	when('/groups',{
+		templateUrl:"public/fragment/groups.html",
+		controller:"GroupsController",
+		controllerAs:"groups"
 	});
 }]);
 
@@ -79,267 +84,6 @@ gitDashboard.controller('LoginController', ['$scope','Auth','localStorageService
 	};
 }]);
 
-gitDashboard.controller('ReposController',['$scope','$location','Repo','$routeParams',function($scope,$location,Repo,$routeParams){
-	if (!$scope.isLogged()){
-		$location.path("login");	
-	}
-	if ($routeParams.path!=undefined){
-		$scope.currDir=$routeParams.path;
-	}else{
-		$scope.currDir="";
-	}
-	$scope.repositories =[];
-	
-	$scope.hasParent=function(){
-		return $scope.currDir!=""
-	}
-	$scope.upDir=function(){
-		slashPos = $scope.currDir.lastIndexOf("/");
-		if (slashPos>-1){
-			$location.path("").search({path:$scope.currDir.substring(0,slashPos)});
-		}else{
-			$location.path("").search({path:""});
-		}
-	}
-	$scope.showRepo=function(path,repo){
-		if (repo!=null && repo.isRepo){
-			$location.path("repo/"+repo.id);
-		}else{
-			$location.path("").search({path:path});
-			
-		}
-	}
-
-	$scope.createFolder=function(){
-		if($scope.newFolderName!=null && $scope.newFolderName!=""){
-			Repo.createFolder($scope.currDir+"/"+$scope.newFolderName).then(function(data){
-				if (data.success){
-					$('#createFolderPopup').modal('hide');
-					$scope.newFolderName=null;
-					$scope.list();
-				}else{
-					alert(data.error.message);
-				}
-			},function(error){
-				console.log(error);
-				if (error.status==401){
-					$location.path("login");
-				}
-			})
-		}
-	};
-	$scope.createRepo=function(){
-		if($scope.newRepoName!=null && $scope.newRepoName!=""){
-			Repo.createRepo($scope.currDir+"/"+$scope.newRepoName,$scope.newRepoDescription).then(function(data){
-				if (data.success){
-					$('#createRepoPopup').modal('hide');
-					$scope.newRepoName=null;
-					$scope.newRepoDescription=null;
-					$scope.list();
-				}else{
-					alert(data.error.message);
-				}
-			},function(error){
-				console.log(error);
-				if (error.status==401){
-					$location.path("login");
-				}
-			})
-		}
-	};
-
-	$scope.list=function(){
-		Repo.list($scope.currDir).then(function(data){
-			console.log(data);
-			$scope.repositories = data.repositories;
-		},function(error){
-			console.log(error);
-			if (error.status==401){
-				$location.path("login");
-			}
-		});
-	};
-	$scope.list();
-}]);
-
-gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$location',function($scope,$routeParams,Repo,$location){
-	var repoId = parseInt($routeParams.repoId);
-	$scope.page = 1;
-	$scope.count = 10;
-	Repo.info(repoId).then(function(data){
-		if (data.success){
-			console.log(data);
-			$scope.repo = data.info;
-		}else{
-			console.log(data.error);
-			alert(data.error.message);
-		}
-	},function(error){
-		console.log(error);
-		alert(error);
-	});
-
-	$scope.returnToFolder = function(){
-		$location.path("").search({path:$scope.repo.folderPath});
-	}
-
-	$scope.decPage=function(){
-		if ($scope.page>1){
-			$scope.page--;
-		}
-		$scope.getCommits();
-	}
-	$scope.incPage=function(){
-		if ($scope.commits.length>0){
-			$scope.page++;
-			$scope.getCommits();
-		}
-	}
-	$scope.getCommits=function(){
-		Repo.commits(repoId,$scope.currRef,($scope.page-1)*parseInt($scope.count),parseInt($scope.count),$scope.ascending).then(function(data){
-			console.log(data);
-			if (data.success){
-				$scope.commits = data.commits;
-			}
-		},function(error){
-			console.log(error);
-			if (error.status==401){
-				$location.path("login");
-			}
-		});
-	}
-	$scope.getFiles=function(parent){
-		if (parent==null){
-			$scope.currPath=[];
-			parentId=null;
-		}else{
-			parentId = parent.id;
-		}
-		$scope.currPath.push(parent);
-		console.log($scope.currPath);
-		Repo.files(repoId,$scope.currRef,parentId).then(function(data){
-			console.log(data);
-			if (data.success){
-				$scope.parentTreeId = data.parentTreeId;
-				$scope.files = data.files;
-			}
-		},function(error){
-			console.log(error);
-			if (error.status==401){
-				$location.path("login");
-			}
-		});
-	}
-	$scope.inFolder=function(){
-		return $scope.currPath.length>1;
-	}
-	$scope.upFilesDir=function(){
-		if ($scope.currPath.length>0){
-			$scope.currPath.pop();//current
-			parent = $scope.currPath.pop();
-			$scope.getFiles(parent);
-			$scope.fileContent=null;
-		}
-	}
-	$scope.getPath=function(){
-		var strPath = "";
-		for (var i=0;i<$scope.currPath.length;i++){
-			if ($scope.currPath[i]!=null){
-				strPath+="/"+$scope.currPath[i].name;
-			}
-		}
-		if ($scope.file!=null){
-			strPath+="/"+$scope.file.name;
-		}
-		return strPath;
-	}
-
-	$scope.codemirrorLoaded = function(_editor){
-		console.log(_editor);
-	}
-
-	$scope.openFile=function(file){
-		if (file.isDir){
-			$scope.getFiles(file);
-			$scope.file=null;
-			$scope.showFile=false;
-		}else{
-			$scope.showFile=true;
-			Repo.fileContent(repoId,file.id).then(function(data){
-				console.log(data);
-				if (data.success){
-					$scope.file={
-						content:atob(data.content),
-						name:file.name
-					};
-					var codeMirrorInstance = $('.CodeMirror')[0].CodeMirror;
-					codeMirrorInstance.setOption("value",$scope.file.content);
-					if (file.name.indexOf("xml")>-1){
-						codeMirrorInstance.setOption("mode","text/xml");
-					}
-					if (file.name.indexOf("java")>-1){
-						codeMirrorInstance.setOption("mode","text/x-java");
-					}
-				}else{
-					alert(data.error.message)
-				}
-			},function(error){
-				console.log(error);
-				if (error.status==401){
-					$location.path("login");
-				}
-			});
-		}
-		console.log(file);
-	}
-
-
-	$scope.getPermissions=function(){
-		Repo.permissions(repoId).then(function(data){
-			if (data.success){
-				$scope.permissions = data.permissions;
-			}else{
-				alert(data.error.message);
-			}
-		},function(error){
-			console.log(error);
-			if (error.status==401){
-				$location.path("login");
-			}
-		});
-	}
-	$scope.addPermission=function(){
-		$scope.permissions.push({
-			userName:"",
-			groupName:"",
-			type:"",
-			ref:""
-		});
-	}
-	$scope.removePermission=function(pos){
-		$scope.permissions.splice(pos,1);
-	}
-	$scope.selUser=function(permission){
-		$scope.currPerm=permission;
-		$('#searchUserPopup').modal('show');		
-	}
-
-	$scope.updatePermissions=function(){
-		Repo.updatePermissions(repoId,$scope.permissions);
-	}
-
-	$scope.setCurrView=function(view){
-		$scope.currView = view;
-	}
-
-	$scope.showFile=false;
-	$scope.currRef="refs/heads/master";	
-	$scope.currPath=[];
-	$scope.getCommits();
-	$scope.getFiles(null);
-}]);	
-
-
 gitDashboard.controller('SelUserController',['$scope','User','$location',function($scope,User,$location){
 	$scope.search=function(){
 		User.search($scope.username).then(function(data){
@@ -364,11 +108,11 @@ gitDashboard.controller('SelUserController',['$scope','User','$location',functio
 	}
 }]);
 
-gitDashboard.controller('UsersController',['$scope','User','$location',function($scope,User,$location){
-	$scope.list=function(){
-		User.list().then(function(data){
+gitDashboard.controller('SelGroupController',['$scope','Group','$location',function($scope,Group,$location){
+	$scope.search=function(){
+		Group.search($scope.name).then(function(data){
 			if (data.success){
-				$scope.users=data.users;
+				$scope.foundedGroups=data.groups;
 			}else{
 				alert(data.error.message);
 			}
@@ -378,9 +122,14 @@ gitDashboard.controller('UsersController',['$scope','User','$location',function(
 				$location.path("login");
 			}
 		});
-	};
-	$scope.addUser= function(){
-		$scope.users.push(null);
 	}
-	$scope.list();
+	$scope.selectGroup=function(group){
+		$scope.currPerm.userName=null;
+		$scope.currPerm.userId=null;
+		$scope.currPerm.groupName =group.name;
+		$scope.currPerm.groupId =group.id;
+		$('#searchGroupPopup').modal('hide');
+	}
 }]);
+
+

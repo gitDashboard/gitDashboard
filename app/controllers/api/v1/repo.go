@@ -21,7 +21,12 @@ type RepoCtrl struct {
 
 func (ctrl *RepoCtrl) getRepo(fullPath string) models.Repo {
 	var repo models.Repo
-	ctrl.Tx.Where("path = ? ", fullPath).First(&repo)
+	db := ctrl.Tx.Where("path = ? ", fullPath).First(&repo)
+	if len(db.GetErrors()) > 0 {
+		for _, err := range db.GetErrors() {
+			revel.ERROR.Println(err.Error())
+		}
+	}
 	return repo
 }
 

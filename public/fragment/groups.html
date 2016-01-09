@@ -1,0 +1,126 @@
+<div ng-controller="GroupsController" class="ui segment">
+	<div class="ui modal" id="searchUserPopup" ng-controller="SelUserController">
+		<i class="ui close icon"/>
+		<div class="header">
+			Search User
+		</div>
+		<div class="content">
+			<form class="ui form">
+				<div class="field">
+					<label>Username</label>
+					<input type="text" ng-model="username"/>
+				</div>
+				<div class="ui icon button" ng-click="search()"><i class="search  blue icon"/>Search</div>
+			</form>
+			<table class="ui celled table">
+				<thead>
+					<tr>
+						<th>Username</th>
+						<th>Type</th>
+						<th>Sel</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat="user in foundedUsers">
+						<td>
+							{[{user.username}]}
+						</td>
+						<td>
+							{[{user.type}]}
+						</td>
+						<td>
+							<div class="ui button" ng-click="addUserToCurrentGroup(user)" onclick="$('#searchUserPopup').modal('hide');">Sel</div>
+						</td>
+					</tr>
+				</tbody>
+
+			</table>
+		</div>
+	</div>
+
+	<h2 class="header attached">
+		Groups Management
+	</h2>
+	<form class="ui form">
+		<table class="ui celled table">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Description</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat-start="group in groups">
+					<td><input type="text" ng-model="group.name"/></td>
+					<td><input type="text" ng-model="group.description"/></td>
+					<td>
+						<div class="ui icon button" ng-click="selGroup(group)" >
+							<i class="ui users blue icon" />
+						</div>
+						<div class="ui icon button" ng-click="saveGroup(group)">
+							<i class="ui save green icon" />
+						</div>
+						<div class="ui icon button" ng-click="deleteGroup(group)">
+							<i class="ui trash red icon" />
+						</div>
+					</td>
+				</tr>
+				<tr ng-repeat-end ng-show="group.showUser">
+					<td colspan="3">
+						<table class="ui celled table">
+							<thead>
+								<tr>
+									<th>
+										User
+									</th>
+									<th>
+										Type
+									</th>
+									<th>
+										Actions
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr ng-repeat="user in group.users">
+									<td>
+										{[{user.username}]}
+									</td>
+									<td>
+										{[{user.type}]}
+									</td>
+									<td>
+										<div class="ui icon button" title="Remove user from group" ng-click="removeUserFromGroup($index)">
+											<i class="trash icon"/>
+										</div>
+									</td>
+								</tr>
+							</tbody>
+							<tfoot>
+								<tr>
+									<th colspan="3">
+										<div class="ui icon button" onclick="$('#searchUserPopup').modal('show');">
+											<i class="plus icon"/>
+											Add User to Group
+										</div>
+									</th>
+								</tr>
+							</tfoot>
+						</table>
+					</td>
+				</tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<th colspan="4">
+						<div class="ui icon button" ng-click="addGroup()">
+							<i class="add icon"/>
+							Add Group
+						</div>
+					</th>
+				</tr>
+			</tfoot>
+		</table>
+	</form>
+</div>

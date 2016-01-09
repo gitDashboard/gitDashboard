@@ -25,6 +25,13 @@ POST	/api/v1/admin/repo/:repoId/permissions			AdminRepo.UpdatePermissions
 
 GET 	/api/v1/admin/user/search 				AdminUser.Search
 GET 	/api/v1/admin/user/list 					AdminUser.List
+POST 	/api/v1/admin/user/save 				AdminUser.Save
+DELETE	/api/v1/admin/user/:userId 				AdminUser.Delete
+
+GET 	/api/v1/admin/group/search 				AdminGroup.Search
+GET 	/api/v1/admin/group/list 				AdminGroup.List
+POST 	/api/v1/admin/group/save 				AdminGroup.Save
+DELETE	/api/v1/admin/group/:userId 				AdminGroup.Delete
 
 # Map static resources from the /app/public folder to the /public path
 GET     /public/*filepath                       				Static.Serve("public")

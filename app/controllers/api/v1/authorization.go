@@ -6,6 +6,7 @@ import (
 	"github.com/gitDashboard/client/v1/misc"
 	"github.com/gitDashboard/client/v1/request"
 	"github.com/gitDashboard/client/v1/response"
+	"github.com/gitDashboard/gitDashboard/app/auth"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/jinzhu/gorm"
@@ -25,7 +26,9 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 	db.Preload("Groups").Where("username = ?", username).First(&user)
 	//searching for admin group
 	isAdmin := false
-	for _, grp := range user.Groups {
+	groupIds := make([]uint, len(user.Groups), len(user.Groups))
+	for i, grp := range user.Groups {
+		groupIds[i] = grp.ID
 		if grp.Name == "admin" {
 			isAdmin = true
 		}
@@ -38,25 +41,29 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 	db.Where("path = ?", repoDir).First(&repo)
 	//finding permissions
 	var perms []models.Permission
-	db.Where("repo_id = ? and user_id = ? and type like ?", repo.ID, user.ID, "%"+operation+"%").Find(&perms)
+	if len(groupIds) > 0 {
+		db.Order("position").Where("repo_id = ? and (user_id = ? or group_id IN (?)) and type like ?", repo.ID, user.ID, groupIds, "%"+operation+"%").Find(&perms)
+	} else {
+		db.Order("position").Where("repo_id = ? and user_id = ? and type like ?", repo.ID, user.ID, "%"+operation+"%").Find(&perms)
+	}
+	authorized := false
 	if len(perms) > 0 {
-		if operation != "read" {
-			for _, perm := range perms {
+		for _, perm := range perms {
+			if operation != "read" {
 				match, err := regexp.MatchString(perm.Branch, refName)
 				if err != nil {
 					return false, err
 				}
 				if match {
-					if perm.Granted {
-						return true, nil
-					}
+					authorized = perm.Granted
 				}
+			} else {
+				authorized = true
 			}
-		} else {
-			return true, nil
 		}
 	}
-	return false, nil
+	revel.INFO.Println("authorized:", authorized)
+	return authorized, nil
 }
 
 func (c AuthorizationCtrl) CheckAuthorization() revel.Result {
@@ -78,8 +85,7 @@ func checkUserPassword(dbUser *models.User, password, userType string) error {
 	if userType == "internal" {
 		return bcrypt.CompareHashAndPassword([]byte(dbUser.Password.String), []byte(password))
 	} else {
-		//TODO : LDAP
-		return nil
+		return auth.Login(dbUser.Username, password)
 	}
 }
 
@@ -95,9 +101,11 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 		//no user found
 		loginResp.Success = false
 		loginResp.Error = response.NoUserFoundError
+		return ctrl.RenderJson(loginResp)
 	}
 	pwdErr := checkUserPassword(&dbUser, loginReq.Password, loginReq.Type)
 	if pwdErr != nil {
+		revel.ERROR.Println(pwdErr.Error())
 		loginResp.Success = false
 		loginResp.Error = response.AuthenticationFailedError
 	} else {
