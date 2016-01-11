@@ -5,3 +5,18 @@ body{
 .clickable{
 	cursor:pointer;
 }
+
+.diffContent{
+	white-space: nowrap;
+	overflow: auto;
+}
+.diffContent p{
+	font-family: monospace;
+	margin:0px;
+}
+.oldFile{color:red; font-weight: bold}
+.newFile{color:green; font-weight: bold}
+.diffcommand { color: teal; }
+.removed     { color: red; }
+.inserted    { color: green; }
+.linenumber  { color: purple; }

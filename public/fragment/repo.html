@@ -10,15 +10,14 @@
 			</i>
 		</a>
 	</div>
-	<div ng-include="currView"></div>
 
 	<div class="ui segment  attached">
 		<b>Path:</b>{[{repo.path}]} <b><br/>
 		Description:</b>{[{repo.description}]}<br/>
 		<b>Url:</b>{[{repo.url}]}
-
 	</div>
-	<div class="ui segment attached">
+	<div ng-include="currView"></div>
+	<div class="ui segment attached" ng-hide="currView!=null">
 		<div class="ui top attached tabular menu" id="repoTab">
 			<a class="active item" data-tab="commits"><i class="ui code icon"/>Commits</a>
 			<a class="item" data-tab="files"><i class="ui file outline icon"/>Files</a>
@@ -64,7 +63,7 @@
 					<div  class="four wide column" ><b>Author</b></div>
 					<div  class="nine wide column" ><b>Message</b></div>
 				</div>
-				<div class="row" style="border-bottom:1px solid #CCCCCC;" ng-repeat="commit in commits">
+				<div class="row clickable" style="border-bottom:1px solid #CCCCCC;" ng-repeat="commit in commits" ng-click="selCommit(commit)">
 					<div  class="three wide column middle aligned" >{[{commit.date | date:'medium'}]}</div>
 					<div  class="four wide column" >
 						<div class="ui grid">
@@ -111,7 +110,7 @@
 				</script>
 				<i ng-show="showFile" class="ui left arrow blue icon clickable" ng-click="showFile=false;file=null;"/> {[{getPath()}]}
 			</div>
-			<div class="ui segment"  ng-hide="showFile">
+			<div class="ui segment" >
 				<div class="ui two columns grid">
 					<div class="blue row">
 						<div class="column"><b>Name</b></div>
@@ -132,26 +131,7 @@
 						<div></div>
 					</div>
 				</div>
-			</div>
-			<div class="ui segment" ng-show="showFile" style="height:1000px;">
-				<textarea  id="fileContentTxtArea" ng-model="file.content" rows="100"></textarea>
-				<script type="text/javascript">
-					var fileEditor = CodeMirror.fromTextArea(document.getElementById("fileContentTxtArea"),{
-						lineNumbers: true,
-						matchBrackets: true,
-						readOnly:true,
-						extraKeys: {
-							"F11": function(cm) {
-								cm.setOption("fullScreen", !cm.getOption("fullScreen"));
-							},
-							"Esc": function(cm) {
-								if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
-							}
-						}
-					});
-					fileEditor.setSize("100%",950);
-				</script>
-			</div>
+			</div>	
 		</div>
 		<script type="text/javascript">
 			$('#repoTab .item').tab();

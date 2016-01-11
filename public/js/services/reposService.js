@@ -113,6 +113,16 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;
 	}
 
+	function commit(repoId,commitId){
+		var respDef = $q.defer();
+		$http.get("api/v1/repo/"+repoId+"/commit/"+commitId).success(function (data){
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	}
+
 	function updatePermissions(repoId,permissions){
 		var respDef = $q.defer();
 		var req={
@@ -129,6 +139,7 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 	return {
 		"list":list,
 		"commits":commits,
+		"commit":commit,
 		"info":info,
 		"files":files,
 		"fileContent":fileContent,

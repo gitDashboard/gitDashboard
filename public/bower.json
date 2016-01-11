@@ -23,7 +23,6 @@
     "angular-jwt": "~0.0.9",
     "angular-route": "~1.4.8",
     "angular-gravatar": "~0.4.1",
-    "codemirror": "~5.10.0",
     "angular-ui": "~0.4.0",
     "angular-bcrypt": "~1.0.0"
   }

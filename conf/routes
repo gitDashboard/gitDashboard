@@ -14,6 +14,7 @@ POST	/api/v1/auth/login 					AuthorizationCtrl.Login
 
 POST 	/api/v1/repos/list 					RepoCtrl.List
 POST	/api/v1/repo/:repoId/commits				RepoCtrl.Commits
+GET	/api/v1/repo/:repoId/commit/:commitId			RepoCtrl.Commit
 POST	/api/v1/repo/:repoId/files				RepoCtrl.Files
 GET	/api/v1/repo/:repoId/file/:fileRef				RepoCtrl.FileContent
 GET	/api/v1/repo/:repoId/info					RepoCtrl.Info

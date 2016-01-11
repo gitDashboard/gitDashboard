@@ -62,9 +62,20 @@ func (ctrl *AdminRepo) CreateRepo() revel.Result {
 			resp.Error.Message = resp.Error.Message + err.Error()
 			return ctrl.RenderJson(resp)
 		}
-		repo.Free()
+		defer repo.Free()
+		repoConfig, _ := repo.Config()
+		repoConfig.SetString("core.sharedRepository", "group")
 		if req.Description != "" {
 			ioutil.WriteFile(fullPath+"/description", []byte(req.Description), 0770)
+		}
+		//create update hook as symbolic link
+		updateHookPath := revel.Config.StringDefault("gd.hookFolder", "") + "/update"
+		if _, existHookErr := os.Stat(updateHookPath); existHookErr == nil {
+			revel.INFO.Printf("Creatin link from %s to %s \n", updateHookPath, fullPath+"/hooks/update")
+			err = os.Symlink(updateHookPath, fullPath+"/hooks/update")
+			if err != nil {
+				revel.ERROR.Println(err.Error())
+			}
 		}
 		dbRepo := &models.Repo{Path: controllers.CleanSlashes(fullPath)}
 		ctrl.Tx.Create(dbRepo)

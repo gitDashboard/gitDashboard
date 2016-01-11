@@ -5,6 +5,12 @@ gitDashboard.config(function($interpolateProvider) {
 	$interpolateProvider.endSymbol('}]}');
 });
 
+gitDashboard.filter('unsafe', function($sce) {
+            return function(val) {
+                return $sce.trustAsHtml(val);
+            };
+        });
+
 
 gitDashboard.config(function ($httpProvider, jwtInterceptorProvider) {
 	function localStorageService(localStorageService) {

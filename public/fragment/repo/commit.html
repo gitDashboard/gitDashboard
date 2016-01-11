@@ -1,0 +1,24 @@
+<div class="ui attached segment" >
+	<h2 class="header">
+		<i class="ui left arrow blue icon link" ng-click="setCurrView(null)"/>
+		Commit
+	</h2>
+	<div class="ui grid">
+		<div class="two wide column">
+			<img gravatar-src="currCommit.email" gravatar-size="200" class="ui image centered middle aligned"/>
+		</div>
+		<div class="fourteen wide column">
+			<b>Author:</b>{[{currCommit.author}]} {[{currCommit.email}]}<br/>
+			<b>Message:</b>{[{currCommit.message}]}<br/>
+			<b>Date:</b>{[{currCommit.date | date:'medium'}]}
+		</div>
+	</div>
+	<div class="content" style="margin-top:10px;">
+		<div class="ui segment" ng-repeat="file in currCommit.files">
+			<h4 class="header blue">
+				{[{file.type}]}:<span ng-show="file.type=='renamed'"><a ng-click="openFileContent(file.oldId,file.oldName)">{[{file.oldName}]}</a></span><a ng-click="openFileContent(file.newId,file.newName)">{[{file.newName}]}</a>
+			</h4>
+			<div class="diffContent" ng-bind-html="file.patch|unsafe"></div>
+		</div>
+	</div>
+</div>

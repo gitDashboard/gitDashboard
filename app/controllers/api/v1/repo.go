@@ -9,8 +9,10 @@ import (
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/revel/revel"
 	git "gopkg.in/libgit2/git2go.v22"
+	"html/template"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -121,10 +123,7 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 
 	err := ctrl.GetJSONBody(&req)
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
-		revel.ERROR.Println(err.Error())
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 
@@ -154,6 +153,7 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 		resp.Error.Message = resp.Error.Message + err.Error()
 		return ctrl.RenderJson(resp)
 	}
+	defer repo.Free()
 	refName := req.Branch
 	walk, err := repo.Walk()
 	if err != nil {
@@ -162,6 +162,7 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 		resp.Error.Message = resp.Error.Message + err.Error()
 		return ctrl.RenderJson(resp)
 	}
+	defer walk.Free()
 	resp.Success = true
 	resp.Commits = make([]response.RepoCommit, 0)
 	walk.Sorting(git.SortTopological | git.SortTime)
@@ -188,6 +189,7 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 
 	walk.Iterate(func(commit *git.Commit) bool {
 		var repoCmt response.RepoCommit
+		repoCmt.ID = commit.Id().String()
 		repoCmt.Message = commit.Message()
 		repoCmt.Author = commit.Author().Name
 		repoCmt.Email = commit.Author().Email
@@ -197,8 +199,6 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 		return true
 	})
 end:
-	walk.Free()
-	repo.Free()
 	revel.INFO.Printf("response: %+v\n", resp)
 	return ctrl.RenderJson(resp)
 }
@@ -234,21 +234,22 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 		resp.Error.Message = resp.Error.Message + err.Error()
 		return ctrl.RenderJson(resp)
 	}
+	defer repo.Free()
 	refIt, err := repo.NewReferenceIterator()
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
 		resp.Error.Message = resp.Error.Message + err.Error()
-		repo.Free()
+
 		return ctrl.RenderJson(resp)
 	}
+	defer refIt.Free()
 	refNameIt := refIt.Names()
 	refName, refNameErr := refNameIt.Next()
 	for refNameErr == nil {
 		resp.Info.References = append(resp.Info.References, refName)
 		refName, refNameErr = refNameIt.Next()
 	}
-	refIt.Free()
 
 	resp.Info.Path = "/" + strings.Replace(dbRepo.Path, controllers.GitBasePath(), "", 1)
 	resp.Info.FolderPath = resp.Info.Path[0:strings.LastIndex(resp.Info.Path, "/")]
@@ -256,7 +257,6 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 	resp.Info.ID = dbRepo.ID
 	readRepoDescription(dbRepo.Path, &resp.Info)
 	resp.Success = true
-	repo.Free()
 	return ctrl.RenderJson(resp)
 }
 
@@ -273,10 +273,7 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 
 	err := ctrl.GetJSONBody(&req)
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
-		revel.ERROR.Println(err.Error())
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 
@@ -306,13 +303,13 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 		resp.Error.Message = resp.Error.Message + err.Error()
 		return ctrl.RenderJson(resp)
 	}
+	defer repo.Free()
 	//find last commit
 	rev, err := repo.Revparse(req.RefName)
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
 		resp.Error.Message = resp.Error.Message + err.Error()
-		repo.Free()
 		return ctrl.RenderJson(resp)
 	}
 	lastCommit, err := repo.LookupCommit(rev.From().Id())
@@ -320,9 +317,9 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 		resp.Success = false
 		resp.Error = response.FatalError
 		resp.Error.Message = resp.Error.Message + err.Error()
-		repo.Free()
 		return ctrl.RenderJson(resp)
 	}
+	defer lastCommit.Free()
 	var tree *git.Tree
 	if req.Parent == "" {
 		tree, err = lastCommit.Tree()
@@ -337,10 +334,9 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 		resp.Success = false
 		resp.Error = response.FatalError
 		resp.Error.Message = resp.Error.Message + err.Error()
-		lastCommit.Free()
-		repo.Free()
 		return ctrl.RenderJson(resp)
 	}
+	defer tree.Free()
 	resp.Files = make([]response.RepoFile, tree.EntryCount(), tree.EntryCount())
 
 	for i := uint64(0); i < tree.EntryCount(); i++ {
@@ -356,9 +352,6 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 	}
 	sort.Sort(ByFolder(resp.Files))
 	resp.Success = true
-	tree.Free()
-	lastCommit.Free()
-	repo.Free()
 	return ctrl.RenderJson(resp)
 }
 
@@ -393,6 +386,7 @@ func (ctrl *RepoCtrl) FileContent(repoId int, fileRef string) revel.Result {
 		resp.Error.Message = resp.Error.Message + err.Error()
 		return ctrl.RenderJson(resp)
 	}
+	defer repo.Free()
 	fileOid, err := git.NewOid(fileRef)
 	if err != nil {
 		resp.Success = false
@@ -405,13 +399,162 @@ func (ctrl *RepoCtrl) FileContent(repoId int, fileRef string) revel.Result {
 		resp.Success = false
 		resp.Error = response.FatalError
 		resp.Error.Message = resp.Error.Message + err.Error()
-		repo.Free()
 		return ctrl.RenderJson(resp)
 	}
+	defer blobFile.Free()
+
 	resp.Success = true
 	resp.Size = blobFile.Size()
 	resp.Content = base64.StdEncoding.EncodeToString(blobFile.Contents())
-	blobFile.Free()
-	repo.Free()
+	return ctrl.RenderJson(resp)
+}
+
+func Diff2Html(diffContent string) string {
+	var result string
+	rowRegexp := regexp.MustCompile("^@@.*?@@")
+	lines := strings.Split(diffContent, "\n")
+	for _, line := range lines {
+
+		htmlLine := template.HTMLEscapeString(line)
+		htmlLine = strings.Replace(htmlLine, "\t", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
+		switch {
+		case strings.HasPrefix(line, "+++"):
+			result += "<p class=\"oldFile\">" + htmlLine + "</p>"
+		case strings.HasPrefix(line, "---"):
+			result += "<p class=\"newFile\">" + htmlLine + "</p>"
+		case strings.HasPrefix(line, "+"):
+			result += "<p class=\"inserted\">" + htmlLine + "</p>"
+		case strings.HasPrefix(line, "-"):
+			result += "<p class=\"removed\">" + htmlLine + "</p>"
+		case strings.HasPrefix(line, "diff"):
+			result += "<p class=\"diffCommand\">" + htmlLine + "</p>"
+		default:
+			if rowRegexp.MatchString(htmlLine) {
+				matches := rowRegexp.FindAllString(htmlLine, -1)
+				htmlLine = "<span class=\"linenumber\">" + matches[0] + "</span>" + htmlLine[len(matches[0]):]
+			}
+			result += "<p>" + htmlLine + "</p>"
+		}
+	}
+	return result
+}
+
+func (ctrl *RepoCtrl) Commit(repoId uint, commitId string) revel.Result {
+	var dbRepo models.Repo
+	var resp response.RepoCommitResponse
+	revel.INFO.Printf("Commit request repoId:%d commitId:%s\n", repoId, commitId)
+	db := ctrl.Tx.First(&dbRepo, repoId)
+	if len(db.GetErrors()) > 0 {
+		resp.Success = false
+		resp.Error = response.FatalError
+		for _, err := range db.GetErrors() {
+			resp.Error.Message = resp.Error.Message + err.Error()
+		}
+	}
+	//checking permission
+	authorized, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	if !authorized {
+		resp.Success = false
+		resp.Error = response.PermissionDeniedError
+		return ctrl.RenderJson(resp)
+	}
+	repo, err := git.OpenRepository(dbRepo.Path)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	defer repo.Free()
+	commitOid, _ := git.NewOid(commitId)
+	commit, err := repo.LookupCommit(commitOid)
+	if err != nil {
+		resp.Success = false
+		resp.Error = response.FatalError
+		resp.Error.Message = resp.Error.Message + err.Error()
+		return ctrl.RenderJson(resp)
+	}
+	defer commit.Free()
+	resp.Success = true
+	resp.Commit.ID = commitId
+	resp.Commit.Message = commit.Message()
+	resp.Commit.Author = commit.Author().Name
+	resp.Commit.Email = commit.Author().Email
+	resp.Commit.Date = commit.Author().When.UnixNano() / 1000000
+
+	if commit.ParentCount() == 1 {
+		parentCommit := commit.Parent(0)
+		defer parentCommit.Free()
+		diffOpts, _ := git.DefaultDiffOptions()
+		parentTree, _ := parentCommit.Tree()
+		currTree, _ := commit.Tree()
+		diff, err := repo.DiffTreeToTree(parentTree, currTree, &diffOpts)
+		if err != nil {
+			resp.Success = false
+			resp.Error = response.FatalError
+			resp.Error.Message = resp.Error.Message + err.Error()
+			return ctrl.RenderJson(resp)
+		}
+		defer diff.Free()
+		nDelta, err := diff.NumDeltas()
+		if err != nil {
+			resp.Success = false
+			resp.Error = response.FatalError
+			resp.Error.Message = resp.Error.Message + err.Error()
+			return ctrl.RenderJson(resp)
+		}
+		for d := 0; d < nDelta; d++ {
+			delta, err := diff.GetDelta(d)
+			if err != nil {
+				resp.Success = false
+				resp.Error = response.FatalError
+				resp.Error.Message = resp.Error.Message + err.Error()
+				return ctrl.RenderJson(resp)
+			}
+			patch, err := diff.Patch(d)
+			if err != nil {
+				resp.Success = false
+				resp.Error = response.FatalError
+				resp.Error.Message = resp.Error.Message + err.Error()
+				return ctrl.RenderJson(resp)
+			}
+			defer patch.Free()
+
+			var diffFile response.RepoDiffFile
+			patchContent, err := patch.String()
+
+			if err != nil {
+				resp.Success = false
+				resp.Error = response.FatalError
+				resp.Error.Message = resp.Error.Message + err.Error()
+				return ctrl.RenderJson(resp)
+			}
+			diffFile.Patch = Diff2Html(patchContent)
+
+			if delta.Status == git.DeltaAdded {
+				diffFile.Type = "added"
+			}
+			if delta.Status == git.DeltaDeleted {
+				diffFile.Type = "deleted"
+			}
+			if delta.Status == git.DeltaModified {
+				diffFile.Type = "modified"
+			}
+			if delta.Status == git.DeltaRenamed {
+				diffFile.Type = "renamed"
+			}
+			diffFile.OldId = delta.OldFile.Oid.String()
+			diffFile.OldName = delta.OldFile.Path
+			diffFile.NewId = delta.NewFile.Oid.String()
+			diffFile.NewName = delta.NewFile.Path
+			resp.Files = append(resp.Files, diffFile)
+		}
+	}
 	return ctrl.RenderJson(resp)
 }
