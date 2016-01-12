@@ -10,6 +10,15 @@ userService.factory('User', ['$q','$http',function ($q,$http) {
 		});
 		return respDef.promise;
 	}
+	function ldapSearch(username){
+		var respDef = $q.defer();
+		$http.get("api/v1/admin/user/ldapSearch?username="+username).success(function (data){
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	}
 	function list(){
 		var respDef = $q.defer();
 		$http.get("api/v1/admin/user/list").success(function (data){
@@ -39,6 +48,7 @@ userService.factory('User', ['$q','$http',function ($q,$http) {
 	}
 	return {
 		'search':search,
+		'ldapSearch':ldapSearch,
 		'list':list,
 		'save':save,
 		'deleteUser':deleteUser

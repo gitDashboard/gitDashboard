@@ -66,9 +66,23 @@ func (ctrl *RepoCtrl) checkIsRepo(basePath, repoPath string, repoInfo *response.
 
 type ByIsRepo []response.RepoInfo
 
-func (a ByIsRepo) Len() int           { return len(a) }
-func (a ByIsRepo) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByIsRepo) Less(i, j int) bool { return (!a[i].IsRepo && a[j].IsRepo) || (a[i].Name < a[j].Name) }
+func (a ByIsRepo) Len() int      { return len(a) }
+func (a ByIsRepo) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByIsRepo) Less(i, j int) bool {
+	var fakeStr1 string
+	var fakeStr2 string
+	if a[i].IsRepo {
+		fakeStr1 = "r" + a[i].Name
+	} else {
+		fakeStr1 = "d" + a[i].Name
+	}
+	if a[j].IsRepo {
+		fakeStr2 = "r" + a[j].Name
+	} else {
+		fakeStr2 = "d" + a[j].Name
+	}
+	return fakeStr1 < fakeStr2
+}
 
 func (ctrl *RepoCtrl) List() revel.Result {
 	var req request.RepoListRequest
@@ -262,9 +276,23 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 
 type ByFolder []response.RepoFile
 
-func (a ByFolder) Len() int           { return len(a) }
-func (a ByFolder) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByFolder) Less(i, j int) bool { return a[i].IsDir && !a[j].IsDir || a[i].Name < a[j].Name }
+func (a ByFolder) Len() int      { return len(a) }
+func (a ByFolder) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByFolder) Less(i, j int) bool {
+	var fakeStr1 string
+	var fakeStr2 string
+	if a[i].IsDir {
+		fakeStr1 = "d" + a[i].Name
+	} else {
+		fakeStr1 = "f" + a[i].Name
+	}
+	if a[j].IsDir {
+		fakeStr2 = "d" + a[j].Name
+	} else {
+		fakeStr2 = "f" + a[j].Name
+	}
+	return fakeStr1 < fakeStr2
+}
 
 func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 	var dbRepo models.Repo

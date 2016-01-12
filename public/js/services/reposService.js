@@ -102,6 +102,26 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		});
 		return respDef.promise;	
 	}
+	
+	function initRepo(path){
+		var respDef = $q.defer();
+		$http.put("api/v1/admin/repo/init?path="+path).success(function (data){
+			respDef.resolve(data);
+		}).error(function (data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;	
+	}
+
+	function updateDescription(repoId,description){
+		var respDef = $q.defer();
+		$http.post("api/v1/admin/repo/"+repoId+"/description?description="+description).success(function (data){
+			respDef.resolve(data);
+		}).error(function (data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;	
+	}
 
 	function permissions(repoId){
 		var respDef = $q.defer();
@@ -145,8 +165,10 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		"fileContent":fileContent,
 		'createFolder':createFolder,
 		'createRepo':createRepo,
+		'initRepo':initRepo,
 		'permissions':permissions,
-		'updatePermissions':updatePermissions
+		'updatePermissions':updatePermissions,
+		'updateDescription':updateDescription
 
 	};
 }]);

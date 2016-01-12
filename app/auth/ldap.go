@@ -4,6 +4,7 @@ import (
 	"errors"
 	ldap "github.com/mqu/openldap"
 	"github.com/revel/revel"
+	"strings"
 )
 
 func Connect() (*ldap.Ldap, error) {
@@ -26,6 +27,7 @@ func Login(username, password string) error {
 		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())
 		return err
 	}
+	defer ldapConn.Close()
 
 	baseDn, found := revel.Config.String("ldap.baseDn")
 	if !found {
@@ -36,13 +38,11 @@ func Login(username, password string) error {
 
 	//check username/password
 	ldapUsername := "uid=" + username + "," + baseDn
-	revel.INFO.Println("username and password", ldapUsername, password)
 	err = ldapConn.Bind(ldapUsername, password)
 	if err != nil {
 		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())
 		return err
 	}
-	defer ldapConn.Close()
 	//retrieve user information
 
 	revel.INFO.Printf("LDAP BaseDn:%s\n", baseDn)
@@ -51,7 +51,6 @@ func Login(username, password string) error {
 	userSearchResult, err := ldapConn.SearchAll(baseDn, ldap.LDAP_SCOPE_SUBTREE, "uid="+username, nil)
 	if err != nil {
 		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())
-
 		return err
 	}
 	revel.INFO.Printf("%v\n", userSearchResult)
@@ -66,4 +65,36 @@ func Login(username, password string) error {
 	revel.INFO.Printf("%v\n", groupsSearchResult)
 
 	return nil
+}
+
+func Search(username string) (map[string]string, error) {
+	ldapConn, err := Connect()
+	if err != nil {
+		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())
+		return nil, err
+	}
+	defer ldapConn.Close()
+
+	baseDn, found := revel.Config.String("ldap.baseDn")
+	if !found {
+		err = errors.New("LDAP Configuration \"ldap.baseDn\" not found")
+		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())
+		return nil, err
+	}
+	scope := ldap.LDAP_SCOPE_SUBTREE // LDAP_SCOPE_BASE, LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE
+	filter := "uid=" + username
+	attributes := []string{"cn", "mail"} // leave empty for all attributes
+
+	result, err := ldapConn.SearchAll(baseDn, scope, filter, attributes)
+	if err != nil {
+		revel.ERROR.Println(err)
+		return nil, err
+	}
+	userData := make(map[string]string)
+	for _, entry := range result.Entries() {
+		for _, attr := range entry.Attributes() {
+			userData[attr.Name()] = strings.Join(attr.Values(), ", ")
+		}
+	}
+	return userData, nil
 }

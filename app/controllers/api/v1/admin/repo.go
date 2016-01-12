@@ -28,9 +28,7 @@ func (ctrl *AdminRepo) CreateFolder() revel.Result {
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		err = os.Mkdir(fullPath, 0770)
 		if err != nil {
-			resp.Success = false
-			resp.Error = basicResponse.FatalError
-			resp.Error.Message = resp.Error.Message + err.Error()
+			controllers.ErrorResp(&resp, basicResponse.FatalError, err)
 		} else {
 			resp.Success = true
 		}
@@ -38,6 +36,42 @@ func (ctrl *AdminRepo) CreateFolder() revel.Result {
 		resp.Success = false
 		resp.Error = basicResponse.AlreadyExistError
 	}
+	return ctrl.RenderJson(resp)
+}
+
+func ConfigRepo(repo *git.Repository) error {
+	repoConfig, _ := repo.Config()
+	repoConfig.SetString("core.sharedRepository", "group")
+	//create update hook as symbolic link
+	updateHookPath := revel.Config.StringDefault("gd.hookFolder", "") + "/update"
+	repoHookPath := repo.Path() + "/hooks/update"
+	if _, existHookErr := os.Stat(updateHookPath); existHookErr == nil {
+		if _, errHookAlreadyExist := os.Stat(repoHookPath); os.IsNotExist(errHookAlreadyExist) {
+			revel.INFO.Printf("Creatin link from %s to %s \n", updateHookPath, repoHookPath)
+			return os.Symlink(updateHookPath, repo.Path()+"/hooks/update")
+		}
+	}
+	return nil
+}
+
+func UpdateRepoDescription(repoPath, description string) {
+	ioutil.WriteFile(repoPath+"/description", []byte(description), 0770)
+}
+
+func (ctrl *AdminRepo) UpdateDescription(repoId uint) revel.Result {
+	var resp basicResponse.BasicResponse
+	var dbRepo models.Repo
+	var description string
+	ctrl.Params.Bind(&description, "description")
+	if description != "" {
+		ctrl.Tx.First(&dbRepo, repoId)
+		if dbRepo.ID != repoId {
+			controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
+			return ctrl.RenderJson(resp)
+		}
+		UpdateRepoDescription(dbRepo.Path, description)
+	}
+	resp.Success = true
 	return ctrl.RenderJson(resp)
 }
 
@@ -57,33 +91,49 @@ func (ctrl *AdminRepo) CreateRepo() revel.Result {
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		repo, err := git.InitRepository(fullPath, true)
 		if err != nil {
-			resp.Success = false
-			resp.Error = basicResponse.FatalError
-			resp.Error.Message = resp.Error.Message + err.Error()
+			controllers.ErrorResp(&resp, basicResponse.FatalError, err)
 			return ctrl.RenderJson(resp)
 		}
 		defer repo.Free()
-		repoConfig, _ := repo.Config()
-		repoConfig.SetString("core.sharedRepository", "group")
 		if req.Description != "" {
-			ioutil.WriteFile(fullPath+"/description", []byte(req.Description), 0770)
+			UpdateRepoDescription(fullPath, req.Description)
 		}
-		//create update hook as symbolic link
-		updateHookPath := revel.Config.StringDefault("gd.hookFolder", "") + "/update"
-		if _, existHookErr := os.Stat(updateHookPath); existHookErr == nil {
-			revel.INFO.Printf("Creatin link from %s to %s \n", updateHookPath, fullPath+"/hooks/update")
-			err = os.Symlink(updateHookPath, fullPath+"/hooks/update")
-			if err != nil {
-				revel.ERROR.Println(err.Error())
-			}
+		err = ConfigRepo(repo)
+		if err != nil {
+			panic(err)
 		}
 		dbRepo := &models.Repo{Path: controllers.CleanSlashes(fullPath)}
 		ctrl.Tx.Create(dbRepo)
 		resp.Success = true
 	} else {
-		resp.Success = false
-		resp.Error = basicResponse.AlreadyExistError
+		controllers.ErrorResp(&resp, basicResponse.AlreadyExistError, nil)
 	}
+	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *AdminRepo) InitExistingRepo() revel.Result {
+	var resp response.CreateFolderResponse
+	var repoPath string
+	ctrl.Params.Bind(&repoPath, "path")
+	repoPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + repoPath)
+	//check if path is a git repository
+	repo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
+		return ctrl.RenderJson(resp)
+	}
+	err = ConfigRepo(repo)
+	if err != nil {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, err)
+		return ctrl.RenderJson(resp)
+	}
+	dbRepo := models.Repo{Path: repoPath}
+	db := ctrl.Tx.Create(&dbRepo)
+	if db.Error != nil {
+		controllers.ErrorResp(&resp, basicResponse.DbError, db.Error)
+		return ctrl.RenderJson(resp)
+	}
+	resp.Success = true
 	return ctrl.RenderJson(resp)
 }
 
@@ -92,13 +142,11 @@ func (ctrl *AdminRepo) Permissions(repoId uint) revel.Result {
 	var dbRepo models.Repo
 	ctrl.Tx.First(&dbRepo, repoId)
 	if len(ctrl.Tx.GetErrors()) > 0 {
-		resp.Success = false
-		resp.Error = basicResponse.FatalError
+		controllers.ErrorResp(&resp, basicResponse.FatalError, nil)
 		return ctrl.RenderJson(resp)
 	}
 	if dbRepo.ID != uint(repoId) {
-		resp.Success = false
-		resp.Error = basicResponse.NoRepositoryFoundError
+		controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
 		return ctrl.RenderJson(resp)
 	}
 	ctrl.Tx.Order("position").Where("repo_id=?", dbRepo.ID).Find(&dbRepo.Permissions)
@@ -144,16 +192,13 @@ func (ctrl *AdminRepo) UpdatePermissions(repoId uint) revel.Result {
 
 	revel.INFO.Printf("UpdatePermissions req:%+v\n", req)
 
-	ctrl.Tx.First(&dbRepo, repoId)
-	if len(ctrl.Tx.GetErrors()) > 0 {
-		resp.Success = false
-		resp.Error = basicResponse.FatalError
-		revel.ERROR.Println(ctrl.Tx.GetErrors()[0].Error())
+	db := ctrl.Tx.First(&dbRepo, repoId)
+	if len(db.GetErrors()) > 0 {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, db.GetErrors()[0])
 		return ctrl.RenderJson(resp)
 	}
 	if dbRepo.ID != uint(repoId) {
-		resp.Success = false
-		resp.Error = basicResponse.NoRepositoryFoundError
+		controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
 		return ctrl.RenderJson(resp)
 	}
 
@@ -175,14 +220,13 @@ func (ctrl *AdminRepo) UpdatePermissions(repoId uint) revel.Result {
 		dbPermission.Type = dbPermission.Type[1:]
 		dbPermission.UserID.Scan(newPerm.UserID)
 		dbPermission.GroupID.Scan(newPerm.GroupID)
-		ctrl.Tx.Create(&dbPermission)
+		db := ctrl.Tx.Create(&dbPermission)
+		if len(db.GetErrors()) > 0 {
+			controllers.ErrorResp(&resp, basicResponse.FatalError, db.GetErrors()[0])
+			return ctrl.RenderJson(resp)
+		}
 	}
 
-	if len(ctrl.Tx.GetErrors()) > 0 {
-		resp.Success = false
-		resp.Error = basicResponse.FatalError
-		return ctrl.RenderJson(resp)
-	}
 	resp.Success = true
 	return ctrl.RenderJson(resp)
 }

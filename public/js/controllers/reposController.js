@@ -66,6 +66,22 @@ gitDashboard.controller('ReposController',['$scope','$location','Repo','$routePa
 			})
 		}
 	};
+	$scope.initRepo=function(){
+		Repo.initRepo($scope.currDir).then(function(data){
+			if (data.success){
+				$scope.upDir();
+				alert("Repo initialized");
+			}else{
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		})
+	};
+	
 
 	$scope.list=function(){
 		Repo.list($scope.currDir).then(function(data){

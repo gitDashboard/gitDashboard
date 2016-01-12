@@ -16,7 +16,7 @@ func ErrorResp(resp response.IBasicResponse, respError response.Error, err error
 	resp.SetSuccess(false)
 	if err != nil {
 		respError.Message = respError.Message + err.Error()
+		revel.ERROR.Println(err.Error())
 	}
 	resp.SetError(respError)
-	revel.ERROR.Println(err.Error())
 }

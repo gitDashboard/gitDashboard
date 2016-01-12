@@ -111,6 +111,8 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 	} else {
 		var jwtUser misc.JWTUser
 		jwtUser.Username = loginReq.Username
+		jwtUser.Name = dbUser.Name
+		jwtUser.Email = dbUser.Email.String
 		jwtUser.Groups = make([]string, len(dbUser.Groups), len(dbUser.Groups))
 		for i, group := range dbUser.Groups {
 			jwtUser.Groups[i] = group.Name

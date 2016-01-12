@@ -3,6 +3,7 @@ package admin
 import (
 	"github.com/gitDashboard/client/v1/admin/response"
 	basicResponse "github.com/gitDashboard/client/v1/response"
+	"github.com/gitDashboard/gitDashboard/app/auth"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/jinzhu/gorm"
@@ -36,13 +37,23 @@ func (ctrl *AdminUser) Search() revel.Result {
 	return ctrl.RenderJson(resp)
 }
 
+func (ctrl *AdminUser) LdapSearch() revel.Result {
+	var username string
+	ctrl.Params.Bind(&username, "username")
+	userData, err := auth.Search(username)
+	if err != nil {
+		return ctrl.RenderError(err)
+	}
+	return ctrl.RenderJson(userData)
+}
+
 func (ctrl *AdminUser) List() revel.Result {
 	var resp response.UsersResponse
 	var dbUsers []models.User
 	ctrl.Tx.Find(&dbUsers)
 	resp.Users = make([]response.User, len(dbUsers), len(dbUsers))
 	for i, dbUser := range dbUsers {
-		resp.Users[i] = response.User{ID: dbUser.ID, Username: dbUser.Username, Type: dbUser.Type}
+		resp.Users[i] = response.User{ID: dbUser.ID, Username: dbUser.Username, Type: dbUser.Type, Name: dbUser.Name, Email: dbUser.Email.String}
 	}
 	resp.Success = true
 	return ctrl.RenderJson(resp)
@@ -68,6 +79,8 @@ func (ctrl *AdminUser) Save() revel.Result {
 	}
 	dbUser.Username = req.Username
 	dbUser.Type = req.Type
+	dbUser.Name = req.Name
+	dbUser.Email.Scan(req.Email)
 	if dbUser.Type == "internal" && req.Password != "" {
 		dbUser.Password.Valid = true
 		dbUser.Password.String = req.Password

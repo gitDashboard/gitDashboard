@@ -1,48 +1,87 @@
 <div ng-controller="UsersController" class="ui segment">
-<h2 class="header attached">
-Users Management
-</h2>
-	<form class="ui form">
-	<table class="ui celled table">
-		<thead>
-			<tr>
-				<th>Username</th>
-				<th>Type</th>
-				<th>Password</th>
-				<th>Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr ng-repeat="user in users">
-				<td><input type="text" ng-model="user.username"/></td>
-				<td>
-					<select ng-model="user.type">
+	<div class="ui modal" id="editUserPopup">
+		<i class="ui close icon"/>
+		<div class="header">
+			Edit User
+		</div>
+		<div class="content">
+			<form class="ui form">
+				<div class="field">
+					<label>Type</label>
+					<select ng-model="currUser.type">
 						<option value="internal">Internal</option>
 						<option value="ldap">LDAP</option>
 					</select>
-				</td>
-				<td>
-					<input type="password" ng-model="user.password"/>
-				</td>
-				<td>
-					<div class="ui icon button" ng-click="saveUser(user)">
-						<i class="ui save green icon" />
-					</div>
-					<div class="ui icon button" ng-click="deleteUser(user)">
-						<i class="ui trash red icon" />
-					</div>
-				</td>
+				</div>
+				<div class="field">
+					<label>Username</label>
+					<input type="text" ng-model="currUser.username" ng-change="searchLdap()"/>
+				</div>
+				<div class="field">
+					<label>Password</label>
+					<input type="password" ng-model="currUser.password" ng-disabled="currUser.type=='ldap'"/>
+				</div>
+				<div class="field">
+					<label>Name</label>
+					<input type="text" ng-model="currUser.name"/>
+				</div>
+				<div class="field">
+					<label>Email</label>
+					<input type="text" ng-model="currUser.email"/>
+				</div>
+			</form>
+		</div>
+		<div class="actions">
+			<div class="ui approve button" ng-click="saveUser(currUser)" onclick="$('#editUserPopup').modal('hide');">Save</div>
+    			<div class="ui cancel button" onclick="$('#editUserPopup').modal('hide');">Cancel</div>
+		</div>
+	</div>
+
+	<h2 class="header attached">
+		Users Management
+	</h2>
+	<form class="ui form">
+		<table class="ui celled table">
+			<thead>
+				<tr>
+					<th>Username</th>
+					<th>Type</th>
+					<th>Name</th>
+					<th>Email</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="user in users">
+					<td>{[{user.username}]}</td>
+					<td>
+						{[{user.type}]}
+					</td>
+					<td>
+						{[{user.name}]}
+					</td>
+					<td>
+						{[{user.email}]}
+					</td>
+					<td>
+						<div class="ui icon button" ng-click="editUser(user)">
+							<i class="ui edit orange icon" />
+						</div>
+						<div class="ui icon button" ng-click="deleteUser(user)">
+							<i class="ui trash red icon" />
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="5">
+						<div class="ui icon button" ng-click="editUser(null)" >
+							<i class="add icon"/>
+							Add User
+						</div>
+					</td>
+				</tr>
 			</tr>
-			<tr>
-				<td colspan="4">
-					<div class="ui icon button" ng-click="addUser()">
-						<i class="add icon"/>
-						Add User
-					</div>
-				</td>
-			</tr>
-		</tr>
-	</tbody>
-</table>
+		</tbody>
+	</table>
 </form>
 </div>

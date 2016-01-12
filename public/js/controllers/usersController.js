@@ -13,9 +13,24 @@ gitDashboard.controller('UsersController',['$scope','User','$location','bcrypt',
 			}
 		});
 	};
-	$scope.addUser= function(){
-		$scope.users.push(null);
+	$scope.editUser=function(user){
+		$scope.currUser=user;
+		$('#editUserPopup').modal('show');
 	}
+	$scope.searchLdap=function(){
+		if ($scope.currUser!=null && $scope.currUser.type=="ldap"){
+			User.ldapSearch($scope.currUser.username).then(function(data){
+				$scope.currUser.name = data.cn
+				$scope.currUser.email = data.mail
+			},function(error){
+				console.log(error);
+				if (error.status==401){
+					$location.path("login");
+				}
+			});
+		}
+	}
+	
 	$scope.saveUser =  function(user){
 		if(user.password!=null && user.type=="internal"){
 			var salt = bcrypt.genSaltSync(10);

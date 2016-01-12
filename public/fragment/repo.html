@@ -12,9 +12,17 @@
 	</div>
 
 	<div class="ui segment  attached">
-		<b>Path:</b>{[{repo.path}]} <b><br/>
-		Description:</b>{[{repo.description}]}<br/>
-		<b>Url:</b>{[{repo.url}]}
+		<b>Path:</b>{[{repo.path}]} <br/>
+		<b>Url:</b>{[{repo.url}]}<br/>
+		<span ng-hide="getUser().IsAdmin()"><b>Description:</b>{[{repo.description}]}</span>
+		<form class="ui form" ng-show="getUser().IsAdmin()">
+			<div class="ui labeled fluid input">
+				<div class="ui label">
+					Description:
+				</div>
+				<input type="text" ng-model="repo.description" ng-change="updateDescription()"/>
+			</div>
+		</form>
 	</div>
 	<div ng-include="currView"></div>
 	<div class="ui segment attached" ng-hide="currView!=null">

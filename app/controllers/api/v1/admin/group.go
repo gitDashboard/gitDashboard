@@ -69,18 +69,18 @@ func (ctrl *AdminGroup) Save() revel.Result {
 		//toUpdate
 		ctrl.Tx.First(&dbGroup, req.ID)
 		if dbGroup.ID != req.ID {
-			resp.Success = false
-			resp.Error = basicResponse.NoGroupFoundError
+			controllers.ErrorResp(&resp, basicResponse.NoGroupFoundError, nil)
 			return ctrl.RenderJson(resp)
 		}
+		ctrl.Tx.Model(&dbGroup).Association("Users").Clear()
 	}
+	for _, grpUser := range req.Users {
+		ctrl.Tx.Model(&dbGroup).Association("Users").Append(models.User{ID: grpUser.ID})
+	}
+
 	if req.Name != "admin" {
 		dbGroup.Name = req.Name
 		dbGroup.Description = req.Description
-	}
-	ctrl.Tx.Model(&dbGroup).Association("Users").Clear()
-	for _, grpUser := range req.Users {
-		ctrl.Tx.Model(&dbGroup).Association("Users").Append(models.User{ID: grpUser.ID})
 	}
 
 	var db *gorm.DB
@@ -93,11 +93,7 @@ func (ctrl *AdminGroup) Save() revel.Result {
 		db = ctrl.Tx.Create(&dbGroup)
 	}
 	if len(db.GetErrors()) > 0 {
-		resp.Success = false
-		resp.Error = basicResponse.FatalError
-		for _, err := range db.GetErrors() {
-			resp.Error.Message = resp.Error.Message + err.Error() + " "
-		}
+		controllers.ErrorResp(&resp, basicResponse.FatalError, db.GetErrors()[0])
 		return ctrl.RenderJson(resp)
 	}
 	resp.Success = true
@@ -109,17 +105,12 @@ func (ctrl *AdminGroup) Delete(userId uint) revel.Result {
 	var dbGroup models.Group
 	ctrl.Tx.First(&dbGroup, userId)
 	if dbGroup.ID == 0 {
-		resp.Success = false
-		resp.Error = basicResponse.NoGroupFoundError
+		controllers.ErrorResp(&resp, basicResponse.NoGroupFoundError, nil)
 		return ctrl.RenderJson(resp)
 	}
 	db := ctrl.Tx.Delete(&dbGroup)
 	if len(db.GetErrors()) > 0 {
-		resp.Success = false
-		resp.Error = basicResponse.FatalError
-		for _, err := range db.GetErrors() {
-			resp.Error.Message = resp.Error.Message + err.Error() + " "
-		}
+		controllers.ErrorResp(&resp, basicResponse.FatalError, db.GetErrors()[0])
 		return ctrl.RenderJson(resp)
 	}
 	resp.Success = true

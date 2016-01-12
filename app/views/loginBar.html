@@ -1,5 +1,5 @@
 <form class="ui form"  ng-show="isLogged()" ng-cloak style="display:inline-block;">
-	Welcome {[{getUser().Username}]} 
+	<img gravatar-src="getUser().Email" gravatar-size="30" class="ui image circular centered middle aligned" title="{[{getUser().Username}]} "/> {[{getUser().Name}]} 
 	<i class="ui spy icon " ng-show="getUser().IsAdmin()" title="Admin User"></i>
 	<i class="ui sign out clickable icon " ng-click="logout()" title="Logout"></i>
 </form>

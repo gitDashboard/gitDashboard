@@ -176,6 +176,20 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 	$scope.removePermission=function(pos){
 		$scope.permissions.splice(pos,1);
 	}
+
+	$scope.updateDescription=function(){
+		Repo.updateDescription(repoId,$scope.repo.description).then(function(data){
+			if (!data.success){
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		});
+	}
+
 	$scope.selUser=function(permission){
 		$scope.currPerm=permission;
 		$('#searchUserPopup').modal('show');		

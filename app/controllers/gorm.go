@@ -48,7 +48,7 @@ func InitDB() {
 		adminPwd, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
 		adminPwdFld.String = string(adminPwd)
 		adminPwdFld.Valid = true
-		adminUser := &models.User{Username: "admin", Type: "internal", Password: adminPwdFld}
+		adminUser := &models.User{Username: "admin", Type: "internal", Password: adminPwdFld, Name: "Admin user"}
 		adminUser.Groups = []models.Group{*adminGrp}
 		Db.Create(adminUser)
 	}
