@@ -3,23 +3,10 @@ gitDashboard.controller('ReposController',['$scope','$location','Repo','$routePa
 		$location.path("login");	
 	}
 	if ($routeParams.path!=undefined){
-		$scope.currDir=$routeParams.path;
-	}else{
-		$scope.currDir="";
+		$scope.setCurrDir($routeParams.path)
 	}
 	$scope.repositories =[];
 	
-	$scope.hasParent=function(){
-		return $scope.currDir!=""
-	}
-	$scope.upDir=function(){
-		slashPos = $scope.currDir.lastIndexOf("/");
-		if (slashPos>-1){
-			$location.path("").search({path:$scope.currDir.substring(0,slashPos)});
-		}else{
-			$location.path("").search({path:""});
-		}
-	}
 	$scope.showRepo=function(path,repo){
 		if (repo!=null && repo.isRepo){
 			$location.path("repo/"+repo.id);
@@ -81,7 +68,6 @@ gitDashboard.controller('ReposController',['$scope','$location','Repo','$routePa
 			}
 		})
 	};
-	
 
 	$scope.list=function(){
 		Repo.list($scope.currDir).then(function(data){

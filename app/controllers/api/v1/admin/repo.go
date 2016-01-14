@@ -230,3 +230,91 @@ func (ctrl *AdminRepo) UpdatePermissions(repoId uint) revel.Result {
 	resp.Success = true
 	return ctrl.RenderJson(resp)
 }
+
+func (ctrl *AdminRepo) Move(repoId uint) revel.Result {
+	var req request.RepoMoveRequest
+	var resp basicResponse.BasicResponse
+	var dbRepo models.Repo
+	err := ctrl.GetJSONBody(&req)
+	if err != nil {
+		revel.ERROR.Println(err.Error())
+		return ctrl.RenderError(err)
+	}
+
+	db := ctrl.Tx.First(&dbRepo, repoId)
+	if db.Error != nil {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, db.Error)
+		return ctrl.RenderJson(resp)
+	}
+	if dbRepo.ID != uint(repoId) {
+		controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
+		return ctrl.RenderJson(resp)
+	}
+
+	//locking db on new transaction
+	toUnlock := false
+	if !dbRepo.Locked {
+		revel.INFO.Println("Locking repo")
+		lockDbTx := ctrl.NewTransaction()
+		defer ctrl.RollbackTransaction(lockDbTx)
+		lockDbTx.Table("repos").Where("id=?", repoId).Update("locked", true)
+		ctrl.CommitTransaction(lockDbTx)
+		toUnlock = true
+		revel.INFO.Println("repo Locked")
+	}
+
+	//extract reponame
+	repoStat, err := os.Stat(dbRepo.Path)
+	if err != nil {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, err)
+		return ctrl.RenderJson(resp)
+	}
+	newRepoPath := controllers.CleanSlashes(controllers.GitBasePath() + "/" + req.DestPath + "/" + repoStat.Name())
+	db = ctrl.Tx.Table("repos").Where("id=?", repoId).Update("path", newRepoPath)
+
+	if db.Error != nil {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, db.Error)
+		return ctrl.RenderJson(resp)
+	}
+	err = os.Rename(dbRepo.Path, newRepoPath)
+	if err != nil {
+		go ctrl.unlockRepo(repoId)
+		panic(err) //to rollback the transaction
+	}
+	//unlock repo
+	if toUnlock {
+		go ctrl.unlockRepo(repoId)
+	}
+	resp.Success = true
+	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *AdminRepo) unlockRepo(repoId uint) {
+	revel.INFO.Println("UnLocking repo")
+	unLockDbTx := ctrl.NewTransaction()
+	defer ctrl.RollbackTransaction(unLockDbTx)
+	unLockDbTx.Table("repos").Where("id=?", repoId).Update("locked", false)
+	ctrl.CommitTransaction(unLockDbTx)
+	revel.INFO.Println("repo Unlocked")
+}
+
+func (ctrl *AdminRepo) Lock(lock bool, repoId uint) revel.Result {
+	var resp basicResponse.BasicResponse
+	var dbRepo models.Repo
+	db := ctrl.Tx.First(&dbRepo, repoId)
+	if db.Error != nil {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, db.Error)
+		return ctrl.RenderJson(resp)
+	}
+	if dbRepo.ID != uint(repoId) {
+		controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
+		return ctrl.RenderJson(resp)
+	}
+	db = ctrl.Tx.Model(dbRepo).Update("locked", lock)
+	if db.Error != nil {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, db.Error)
+		return ctrl.RenderJson(resp)
+	}
+	resp.Success = true
+	return ctrl.RenderJson(resp)
+}

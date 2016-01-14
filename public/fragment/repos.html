@@ -68,25 +68,37 @@
 		<thead>
 			<th>Name</th>
 			<th>Description</th>
+			<th class="collapsing">Url</th>
 		</thead>
 		<tr ng-show="hasParent()">
 			<td class="clickable">
 				<a ng-click="upDir()"><i class="ui up arrow icon"/></a>
 			</td>
-			<td>
-			</td>
+			<td>[Parent Folder]</td>
+			<td></td>
 		</tr>
 		<tr ng-repeat="repo in repositories">
 			<td>
-				<div style="display:inline;" ng-click="showRepo(repo.path,repo)" class="clickable">
+				<div style="display:inline;" >
 					<i class="ui orange folder icon" ng-hide="repo.isRepo"></i>
-					<i class="ui code icon" ng-show="repo.isRepo"></i>
+					<i class="ui code icon" ng-show="repo.isRepo && !getUser().IsAdmin()"></i>
 					<i class="ui lock icon" ng-hide="repo.isAuthorized"></i>
-					{[{repo.name}]}
+					<a class="item" ng-show="getUser().IsAdmin() &&  repo.isRepo" title="select repository" ng-click="selRepo(repo)" >
+						<i class="square  icon"   ng-hide="selRepoContains(repo)"/>
+						<i class="check square icon"   ng-show="selRepoContains(repo)"/>
+					</a>
+					<span ng-click="showRepo(repo.path,repo)" class="clickable">
+						{[{repo.name}]}
+					</span>
 				</div>
 			</td>
 			<td>
 				{[{repo.description}]}
+			</td>
+			<td>
+				<div class="ui input small" ng-show="repo.isRepo">
+					<input type="text" disabled="disabled" ng-model="repo.url"/>
+				</div>
 			</td>
 		</tr>
 	</table>

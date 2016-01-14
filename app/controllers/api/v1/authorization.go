@@ -20,7 +20,7 @@ type AuthorizationCtrl struct {
 	controllers.GormController
 }
 
-func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string) (bool, error) {
+func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string) (bool, bool, error) {
 	var user models.User
 	//finding user
 	db.Preload("Groups").Where("username = ?", username).First(&user)
@@ -33,12 +33,13 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 			isAdmin = true
 		}
 	}
-	if isAdmin {
-		return true, nil
-	}
 	//finding repo
 	var repo models.Repo
 	db.Where("path = ?", repoDir).First(&repo)
+
+	if isAdmin {
+		return true, repo.Locked, nil
+	}
 	//finding permissions
 	var perms []models.Permission
 	if len(groupIds) > 0 {
@@ -52,7 +53,7 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 			if operation != "read" {
 				match, err := regexp.MatchString(perm.Branch, refName)
 				if err != nil {
-					return false, err
+					return false, false, err
 				}
 				if match {
 					authorized = perm.Granted
@@ -63,7 +64,7 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 		}
 	}
 	revel.INFO.Println("authorized:", authorized)
-	return authorized, nil
+	return authorized, repo.Locked, nil
 }
 
 func (c AuthorizationCtrl) CheckAuthorization() revel.Result {
@@ -74,11 +75,11 @@ func (c AuthorizationCtrl) CheckAuthorization() revel.Result {
 	}
 	revel.INFO.Printf("CheckAuthorization parameter:%+v\n", authReq)
 
-	authorized, err := CheckAutorization(c.Tx, authReq.RepositoryPath, authReq.Username, authReq.Operation, authReq.RefName)
+	authorized, locked, err := CheckAutorization(c.Tx, authReq.RepositoryPath, authReq.Username, authReq.Operation, authReq.RefName)
 	if err != nil {
 		return c.RenderError(err)
 	}
-	return c.RenderJson(&response.AuthorizationResponse{Authorized: authorized})
+	return c.RenderJson(&response.AuthorizationResponse{Authorized: authorized, Locked: locked})
 }
 
 func checkUserPassword(dbUser *models.User, password, userType string) error {

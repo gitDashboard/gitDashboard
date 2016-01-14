@@ -156,6 +156,39 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;
 	}
 
+	function moveRepo(repo,destFolder){
+		var respDef = $q.defer();
+		var req={
+			destPath:destFolder
+		};
+		$http.post("api/v1/admin/repo/"+repo.id+"/move",req).success(function (data){
+			data.repo = repo;
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status,"repo":repo} );
+		});
+		return respDef.promise;
+	}
+
+	function lockRepo(repo,lock){
+		var respDef = $q.defer();
+		var url = "api/v1/admin/repo/"+repo.id+"/";
+		if (lock){
+			url+="lock";
+		}else{
+			url+="unlock";
+		}console.log(url);
+		$http.post(url).success(function (data){
+			data.repo = repo;
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status,"repo":repo} );
+		});
+		return respDef.promise;
+	}
+
+	
+
 	return {
 		"list":list,
 		"commits":commits,
@@ -168,7 +201,8 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		'initRepo':initRepo,
 		'permissions':permissions,
 		'updatePermissions':updatePermissions,
-		'updateDescription':updateDescription
-
+		'updateDescription':updateDescription,
+		'moveRepo':moveRepo,
+		'lock':lockRepo
 	};
 }]);

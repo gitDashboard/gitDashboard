@@ -9,6 +9,14 @@
 				<i class="corner green lock icon"   />
 			</i>
 		</a>
+		<a class="item" ng-show="getUser().IsAdmin()" title="select repository" ng-click="selRepo(repo)" >
+			<i class="square big icon"   ng-hide="selRepoContains(repo)"/>
+			<i class="check square big icon"   ng-show="selRepoContains(repo)"/>
+		</a>
+		<a class="item" ng-show="getUser().IsAdmin()" title="select repository" ng-click="lockRepo(repo)" >
+			<i class="lock  big icon"  ng-show="repo.locked" title="locked"/>
+			<i class="unlock big icon"  ng-hide="repo.locked" title="unlocked"/>
+		</a>
 	</div>
 
 	<div class="ui segment  attached">

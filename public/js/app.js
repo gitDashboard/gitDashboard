@@ -6,10 +6,10 @@ gitDashboard.config(function($interpolateProvider) {
 });
 
 gitDashboard.filter('unsafe', function($sce) {
-            return function(val) {
-                return $sce.trustAsHtml(val);
-            };
-        });
+	return function(val) {
+		return $sce.trustAsHtml(val);
+	};
+});
 
 
 gitDashboard.config(function ($httpProvider, jwtInterceptorProvider) {
@@ -52,7 +52,7 @@ gitDashboard.config(['$routeProvider', '$locationProvider',function ($routeProvi
 	});
 }]);
 
-gitDashboard.controller('MainCtrl', ['$scope','localStorageService','jwtHelper','$location', function ($scope,localStorageService,jwtHelper,$location) {
+gitDashboard.controller('MainCtrl', ['$scope','localStorageService','jwtHelper','$location','Repo','$route', function ($scope,localStorageService,jwtHelper,$location,Repo,$route) {
 	$scope.isLogged=function(){
 		return localStorageService.get('jwt_token') != undefined;
 	}
@@ -72,6 +72,77 @@ gitDashboard.controller('MainCtrl', ['$scope','localStorageService','jwtHelper',
 		$location.path("login");
 	};
 
+	$scope.selRepoIndexOf=function(repo){
+		for (var i = $scope.selectedRepos.length - 1; i >= 0; i--) {
+			if ($scope.selectedRepos[i].id==repo.id){
+				return i;
+			}
+		};
+		return -1;
+	}
+
+	$scope.selRepoContains=function(repo){
+		return $scope.selRepoIndexOf(repo)!=-1;
+	}
+
+	$scope.selRepo=function(repo){
+		var selRepoPos  =$scope.selRepoIndexOf(repo)
+		if (selRepoPos==-1){
+			$scope.selectedRepos.push(repo);
+		}else{
+			$scope.selectedRepos.splice(selRepoPos,1);
+		}
+	}
+	
+	$scope.unSelRepo=function(repo){
+		var selRepoPos =$scope.selRepoIndexOf(repo)
+		if (selRepoPos!=-1){
+			$scope.selectedRepos.splice(selRepoPos,1);
+		}
+		if ($scope.currentAction == "moving" && $scope.selectedRepos.length==0 ){
+			$('#movingDimmer').dimmer('hide');
+			$route.reload();
+		}
+	}
+
+	$scope.hasParent=function(){
+		return $scope.currDir!=""
+	}
+	$scope.upDir=function(){
+		slashPos = $scope.currDir.lastIndexOf("/");
+		if (slashPos>-1){
+			$location.path("").search({path:$scope.currDir.substring(0,slashPos)});
+		}else{
+			$location.path("").search({path:""});
+		}
+	}
+	$scope.setCurrDir=function(newDir){
+		$scope.currDir=newDir;	
+	}
+	$scope.moveRepos=function(){
+		var repoToMove = $scope.selectedRepos.slice()
+		$scope.currentAction = "moving";
+		$('#movingDimmer').dimmer('show');
+		for (var i = repoToMove.length - 1; i >= 0; i--) {
+			Repo.moveRepo(repoToMove[i],$scope.currDir).then(function(data){
+				$scope.unSelRepo(data.repo);
+				if (!data.success){
+					console.log(data);
+					alert(data.error.message);
+				}
+			},function(error){
+				console.log(error);
+				if (error.status==401){
+					$location.path("login");
+				}
+			});
+		}
+	}
+	$scope.copyToClipboard=function(content){
+		
+	}
+	$scope.selectedRepos=Array();
+	$scope.currDir="";
 }]);
 
 gitDashboard.controller('LoginController', ['$scope','Auth','localStorageService','$location', function ($scope,Auth,localStorageService,$location) {

@@ -26,11 +26,16 @@
 			</div>
 		</div>
 	</div>
+	<div class="ui page dimmer" id="movingDimmer">
+		<div class="content">
+			<div class="center">
+				<i class="big loading spinner icon"></i>
+				<h2>Moving</h2>
+			</div>
+		</div>
+	</div>
 	<div class="ui attached stackable menu">
 		<div class="ui container">
-			<a class="item">
-				<i class="home icon"></i> Home
-			</a>
 			<a class="item" href="#/">
 				<i class="grid layout icon"></i> Browse
 			</a>
@@ -40,14 +45,45 @@
 			<a class="item" href="#/groups" ng-show="getUser().IsAdmin()">
 				<i class="users icon"></i> Groups
 			</a>
+			<a class="ui dropdown item" ng-show="getUser().IsAdmin()" ng-class="{disabled: selectedRepos.length==0}">
+				<i class="code icon"></i> {[{selectedRepos.length}]} Repo.Selected <i class="dropdown icon"></i>
+				<div class="menu">
+					<div class="item" ng-click="moveRepos()">
+						<i class="ui move icon"></i>Move to: /{[{currDir}]}
+					</div>
+					<div class="divider"></div>
+					<div class="header">
+						<i class="code icon"></i>
+						Repository
+					</div>
+					<div class="item" ng-repeat="selRepo in selectedRepos">
+						{[{selRepo.path}]} <i class="ui minus red icon" title="remove from selection link" ng-click="unSelRepo(selRepo)"></i>
+					</div>
+
+				</div>
+			</a>
 			<div class="right item">
-				<div class="ui input"><input type="text" placeholder="Search..."></div>
+				<div class="ui input">
+					<input type="text" placeholder="Search..."/>
+				</div>
 			</div>
 		</div>
 	</div>
+	<script type="text/javascript">
+		$('.ui.dropdown').dropdown();
+	</script>
 	<div class="ui one column doubling grid container">
 		<div class="column">
 			<div ng-view></div>
+		</div>
+	</div>
+	<div  style="border-top:1px solid #CCCCCC; margin-top:5px; padding-top:10px;padding-bottom:10px;">
+		<div class="ui container center aligned">
+			<a href="https://www.w3.org/TR/html5/" target="_blank"><img src="public/img/badge/html5.png" width="32px" height="32px"  style="border:0px;" title="HTML5" /></a>
+			<a href="https://angularjs.org/"  target="_blank"><img src="public/img/badge/angular.png" width="32px" height="32px"  style="border:0px;" title="Angular JS" /></a>
+			<a href="http://semantic-ui.com/"  target="_blank"><img src="public/img/badge/semantic-ui.png" width="32px" height="32px" style="border:0px;" title="Semantic UI"/></a>
+			<a href="https://golang.org/"  target="_blank"><img src="public/img/badge/golang.png" width="32px" height="32px" style="border:0px;" title="GO"/></a><br/>
+			realized by <a href="https://github.com/n3wtron" target="_blank">Igor Maculan</a>
 		</div>
 	</div>
 </body>

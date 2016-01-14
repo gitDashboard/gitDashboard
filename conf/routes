@@ -22,9 +22,12 @@ GET	/api/v1/repo/:repoId/info					RepoCtrl.Info
 PUT	/api/v1/admin/repo/mkdir				AdminRepo.CreateFolder
 PUT	/api/v1/admin/repo/create				AdminRepo.CreateRepo
 PUT	/api/v1/admin/repo/init					AdminRepo.InitExistingRepo
-POST	/api/v1/admin/repo/:repoId/description				AdminRepo.UpdateDescription
+POST	/api/v1/admin/repo/:repoId/description			AdminRepo.UpdateDescription
 GET	/api/v1/admin/repo/:repoId/permissions			AdminRepo.Permissions
 POST	/api/v1/admin/repo/:repoId/permissions			AdminRepo.UpdatePermissions
+POST	/api/v1/admin/repo/:repoId/move			AdminRepo.Move
+POST	/api/v1/admin/repo/:repoId/lock				AdminRepo.Lock(true)
+POST	/api/v1/admin/repo/:repoId/unlock			AdminRepo.Lock(false)
 
 GET 	/api/v1/admin/user/search 				AdminUser.Search
 GET 	/api/v1/admin/user/ldapSearch				AdminUser.LdapSearch

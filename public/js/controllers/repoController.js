@@ -2,18 +2,20 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 	var repoId = parseInt($routeParams.repoId);
 	$scope.page = 1;
 	$scope.count = 10;
-	Repo.info(repoId).then(function(data){
-		if (data.success){
-			console.log(data);
-			$scope.repo = data.info;
-		}else{
-			console.log(data.error);
-			alert(data.error.message);
-		}
-	},function(error){
-		console.log(error);
-		alert(error);
-	});
+	$scope.info = function(){
+		Repo.info(repoId).then(function(data){
+			if (data.success){
+				console.log(data);
+				$scope.repo = data.info;
+			}else{
+				console.log(data.error);
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			alert(error);
+		});
+	}
 
 	if ($routeParams.fileId!=null && $routeParams.fileName!=null){
 		$scope.openFileContent($routeParams.fileId,$routeParams.fileName);
@@ -235,10 +237,26 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		$scope.getCommit(commit.id)
 		$scope.setCurrView('public/fragment/repo/commit.html');
 	}
+
+	$scope.lockRepo=function(repo){
+		Repo.lock(repo,!repo.locked).then(function(data){
+			console.log(data);
+			if (data.success){
+				$scope.info();				
+			}else{
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		});
+	}
+	$scope.info();
 	$scope.viewHistory=[];
 	$scope.showFile=false;
 	$scope.currRef="refs/heads/master";	
-	$scope.currPath=[];
 	$scope.getCommits();
 	$scope.getFiles(null);
 }]);	

@@ -37,6 +37,8 @@ func InitDB() {
 		revel.INFO.Println("Creating groups table")
 		Db.CreateTable(group)
 		Db.Create(adminGrp)
+	} else {
+		Db.AutoMigrate(group)
 	}
 	if !Db.HasTable(user) {
 		revel.INFO.Println("Creating users table")
@@ -51,10 +53,14 @@ func InitDB() {
 		adminUser := &models.User{Username: "admin", Type: "internal", Password: adminPwdFld, Name: "Admin user"}
 		adminUser.Groups = []models.Group{*adminGrp}
 		Db.Create(adminUser)
+	} else {
+		Db.AutoMigrate(user)
 	}
 	if !Db.HasTable(repo) {
 		revel.INFO.Println("Creating repos table")
 		Db.CreateTable(repo)
+	} else {
+		Db.AutoMigrate(repo)
 	}
 	if !Db.HasTable(perm) {
 		revel.INFO.Println("Creating permissions table")
@@ -62,39 +68,53 @@ func InitDB() {
 		Db.Model(perm).AddForeignKey("repo_id", "repos(id)", "CASCADE", "RESTRICT")
 		Db.Model(perm).AddForeignKey("user_id", "users(id)", "CASCADE", "RESTRICT")
 		Db.Model(perm).AddForeignKey("group_id", "groups(id)", "CASCADE", "RESTRICT")
+	} else {
+		Db.AutoMigrate(perm)
 	}
 }
 
-func (c *GormController) Begin() revel.Result {
+func (c *GormController) NewTransaction() *gorm.DB {
 	txn := Db.Begin()
 	if txn.Error != nil {
 		panic(txn.Error)
 	}
-	c.Tx = txn
-	revel.INFO.Println("c.Tx init", c.Tx)
+	revel.INFO.Println("txn init", txn)
+	return txn
+}
+
+func (c *GormController) RollbackTransaction(tx *gorm.DB) {
+	if tx == nil {
+		return
+	}
+	tx.Rollback()
+	if err := tx.Error; err != nil && err != sql.ErrTxDone {
+		panic(err)
+	}
+	revel.INFO.Println("tx rollbacked", tx)
+}
+func (c *GormController) CommitTransaction(tx *gorm.DB) {
+	if tx == nil {
+		return
+	}
+	tx.Commit()
+	if err := tx.Error; err != nil && err != sql.ErrTxDone {
+		panic(err)
+	}
+	revel.INFO.Println("tx commited", tx)
+}
+
+func (c *GormController) Begin() revel.Result {
+	c.Tx = c.NewTransaction()
 	return nil
 }
 func (c *GormController) Commit() revel.Result {
-	if c.Tx == nil {
-		return nil
-	}
-	c.Tx.Commit()
-	if err := c.Tx.Error; err != nil && err != sql.ErrTxDone {
-		panic(err)
-	}
+	c.CommitTransaction(c.Tx)
 	c.Tx = nil
-	revel.INFO.Println("c.Tx commited (nil)")
 	return nil
 }
 
 func (c *GormController) Rollback() revel.Result {
-	if c.Tx == nil {
-		return nil
-	}
-	c.Tx.Rollback()
-	if err := c.Tx.Error; err != nil && err != sql.ErrTxDone {
-		panic(err)
-	}
+	c.RollbackTransaction(c.Tx)
 	c.Tx = nil
 	return nil
 }
