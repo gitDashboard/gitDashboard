@@ -5,4 +5,5 @@ type Repo struct {
 	Path        string `sql:"not null"`
 	Locked      bool
 	Permissions []Permission
+	Events      []Event
 }

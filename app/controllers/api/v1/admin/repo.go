@@ -6,11 +6,14 @@ import (
 	basicResponse "github.com/gitDashboard/client/v1/response"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
+	"github.com/gitDashboard/gitDashboard/app/repoManager"
 	"github.com/revel/revel"
 	git "gopkg.in/libgit2/git2go.v22"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
+	"time"
 )
 
 type AdminRepo struct {
@@ -262,14 +265,28 @@ func (ctrl *AdminRepo) Move(repoId uint) revel.Result {
 		toUnlock = true
 		revel.INFO.Println("repo Locked")
 	}
-
+	err = ctrl.waitForOperations(dbRepo.ID)
+	if err != nil {
+		controllers.ErrorResp(&resp, basicResponse.FatalError, err)
+		return ctrl.RenderJson(resp)
+	}
 	//extract reponame
 	repoStat, err := os.Stat(dbRepo.Path)
 	if err != nil {
 		controllers.ErrorResp(&resp, basicResponse.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
-	newRepoPath := controllers.CleanSlashes(controllers.GitBasePath() + "/" + req.DestPath + "/" + repoStat.Name())
+	var newRepoPath string
+	if req.DestName == "" {
+		//move
+		newRepoPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + req.DestPath + "/" + repoStat.Name())
+	} else {
+		//rename
+		if req.DestPath == "" {
+			req.DestPath = strings.Replace(path.Dir(dbRepo.Path)+"/", controllers.GitBasePath(), "", 1)
+		}
+		newRepoPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + req.DestPath + "/" + req.DestName)
+	}
 	db = ctrl.Tx.Table("repos").Where("id=?", repoId).Update("path", newRepoPath)
 
 	if db.Error != nil {
@@ -287,6 +304,22 @@ func (ctrl *AdminRepo) Move(repoId uint) revel.Result {
 	}
 	resp.Success = true
 	return ctrl.RenderJson(resp)
+}
+
+/** wait until no running operation on the repo */
+func (ctrl *AdminRepo) waitForOperations(repoId uint) error {
+	hasOp := true
+	var err error
+	for hasOp {
+		hasOp, err = repoManager.HasOperationInProgress(ctrl.Tx, repoId)
+		if err != nil {
+			return err
+		}
+		if hasOp {
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+	return nil
 }
 
 func (ctrl *AdminRepo) unlockRepo(repoId uint) {

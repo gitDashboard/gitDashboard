@@ -1,4 +1,4 @@
-# Routes
+\# Routes
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
@@ -11,6 +11,9 @@ GET     /favicon.ico                            404
 
 POST	/api/v1/auth/check 					AuthorizationCtrl.CheckAuthorization
 POST	/api/v1/auth/login 					AuthorizationCtrl.Login
+POST 	/api/v1/event/start					AuthorizationCtrl.StartEvent(false)
+POST 	/api/v1/event/add					AuthorizationCtrl.StartEvent(true)
+GET 	/api/v1/event/:eventId/finish				AuthorizationCtrl.FinishEvent
 
 POST 	/api/v1/repos/list 					RepoCtrl.List
 POST	/api/v1/repo/:repoId/commits				RepoCtrl.Commits
@@ -18,6 +21,8 @@ GET	/api/v1/repo/:repoId/commit/:commitId			RepoCtrl.Commit
 POST	/api/v1/repo/:repoId/files				RepoCtrl.Files
 GET	/api/v1/repo/:repoId/file/:fileRef				RepoCtrl.FileContent
 GET	/api/v1/repo/:repoId/info					RepoCtrl.Info
+
+
 
 PUT	/api/v1/admin/repo/mkdir				AdminRepo.CreateFolder
 PUT	/api/v1/admin/repo/create				AdminRepo.CreateRepo

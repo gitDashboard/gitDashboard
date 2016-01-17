@@ -253,6 +253,22 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 			}
 		});
 	}
+
+	$scope.renameRepo=function(repo){
+		Repo.moveRepo(repo,"").then(function(data){
+			console.log(data);
+			if (data.success){
+				$scope.info();		
+			}else{
+				alert(data.error.message);
+			}
+		},function(error){
+			console.log(error);
+			if (error.status==401){
+				$location.path("login");
+			}
+		});
+	}
 	$scope.info();
 	$scope.viewHistory=[];
 	$scope.showFile=false;

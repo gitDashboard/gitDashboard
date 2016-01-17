@@ -32,6 +32,7 @@ func InitDB() {
 	user := &models.User{}
 	repo := &models.Repo{}
 	group := &models.Group{}
+	event := &models.Event{}
 	adminGrp := &models.Group{Name: "admin", Description: "Administration group"}
 	if !Db.HasTable(group) {
 		revel.INFO.Println("Creating groups table")
@@ -43,8 +44,8 @@ func InitDB() {
 	if !Db.HasTable(user) {
 		revel.INFO.Println("Creating users table")
 		Db.CreateTable(user)
-		Db.Table("users_groups").AddForeignKey("group_id", "groups(id)", "CASCADE", "RESTRICT")
-		Db.Table("users_groups").AddForeignKey("user_id", "users(id)", "CASCADE", "RESTRICT")
+		//Db.Table("users_groups").AddForeignKey("group_id", "groups(id)", "CASCADE", "RESTRICT")
+		//Db.Table("users_groups").AddForeignKey("user_id", "users(id)", "CASCADE", "RESTRICT")
 
 		var adminPwdFld sql.NullString
 		adminPwd, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
@@ -70,6 +71,12 @@ func InitDB() {
 		Db.Model(perm).AddForeignKey("group_id", "groups(id)", "CASCADE", "RESTRICT")
 	} else {
 		Db.AutoMigrate(perm)
+	}
+	if !Db.HasTable(event) {
+		revel.INFO.Println("Creating events table")
+		Db.CreateTable(event)
+	} else {
+		Db.AutoMigrate(event)
 	}
 }
 

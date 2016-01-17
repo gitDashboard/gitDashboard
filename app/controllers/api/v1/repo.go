@@ -7,11 +7,13 @@ import (
 	"github.com/gitDashboard/client/v1/response"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
+	"github.com/gitDashboard/gitDashboard/app/repoManager"
 	"github.com/revel/revel"
 	git "gopkg.in/libgit2/git2go.v22"
 	"html/template"
 	"io/ioutil"
 	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -19,17 +21,6 @@ import (
 
 type RepoCtrl struct {
 	controllers.JWTController
-}
-
-func (ctrl *RepoCtrl) getRepo(fullPath string) models.Repo {
-	var repo models.Repo
-	db := ctrl.Tx.Where("path = ? ", fullPath).First(&repo)
-	if len(db.GetErrors()) > 0 {
-		for _, err := range db.GetErrors() {
-			revel.ERROR.Println(err.Error())
-		}
-	}
-	return repo
 }
 
 func readRepoDescription(repoPath string, repoInfo *response.RepoInfo) {
@@ -45,7 +36,7 @@ func readRepoDescription(repoPath string, repoInfo *response.RepoInfo) {
 func (ctrl *RepoCtrl) checkIsRepo(basePath, repoPath string, repoInfo *response.RepoInfo) error {
 	fullRepoPath := controllers.CleanSlashes(repoPath + "/" + repoInfo.Name)
 	repoInfo.Path = strings.Replace(fullRepoPath, basePath, "", 1)
-	repo := ctrl.getRepo(fullRepoPath)
+	repo, _ := repoManager.GetRepo(ctrl.Tx, fullRepoPath)
 	if repo.ID > 0 {
 		repoInfo.ID = repo.ID
 		repoInfo.IsRepo = true
@@ -95,7 +86,7 @@ func (ctrl *RepoCtrl) List() revel.Result {
 	currDirPath := controllers.CleanSlashes(baseDirPath + "/" + req.SubPath)
 	revel.INFO.Println("Reading repositories from path:", currDirPath)
 
-	repo := ctrl.getRepo(currDirPath)
+	repo, _ := repoManager.GetRepo(ctrl.Tx, currDirPath)
 	if repo.ID != 0 {
 		//wrong ws , possible security problem: return empty list
 		return ctrl.RenderJson(resp)
@@ -268,7 +259,7 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 		resp.Info.References = append(resp.Info.References, refName)
 		refName, refNameErr = refNameIt.Next()
 	}
-
+	resp.Info.Name = path.Base(dbRepo.Path)
 	resp.Info.Path = "/" + strings.Replace(dbRepo.Path, controllers.GitBasePath(), "", 1)
 	resp.Info.FolderPath = resp.Info.Path[0:strings.LastIndex(resp.Info.Path, "/")]
 	resp.Info.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(resp.Info.Path)

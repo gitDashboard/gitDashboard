@@ -159,7 +159,8 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 	function moveRepo(repo,destFolder){
 		var respDef = $q.defer();
 		var req={
-			destPath:destFolder
+			destPath:destFolder,
+			destName:repo.name
 		};
 		$http.post("api/v1/admin/repo/"+repo.id+"/move",req).success(function (data){
 			data.repo = repo;

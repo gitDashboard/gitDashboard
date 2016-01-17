@@ -9,6 +9,7 @@ import (
 	"github.com/gitDashboard/gitDashboard/app/auth"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
+	"github.com/gitDashboard/gitDashboard/app/repoManager"
 	"github.com/jinzhu/gorm"
 	"github.com/revel/revel"
 	"golang.org/x/crypto/bcrypt"
@@ -135,4 +136,48 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 		}
 	}
 	return ctrl.RenderJson(loginResp)
+}
+
+func (ctrl *AuthorizationCtrl) StartEvent(finished bool) revel.Result {
+	var resp response.RepoEventResponse
+	var req request.RepoEventRequest
+	err := ctrl.GetJSONBody(&req)
+	if err != nil {
+		controllers.ErrorResp(&resp, response.FatalError, err)
+		return ctrl.RenderJson(resp)
+	}
+	repo, err := repoManager.GetRepo(ctrl.Tx, req.RepositoryPath)
+	if err != nil {
+		controllers.ErrorResp(&resp, response.FatalError, err)
+		return ctrl.RenderJson(resp)
+	}
+	if repo.ID <= 0 {
+		controllers.ErrorResp(&resp, response.NoRepositoryFoundError, err)
+		return ctrl.RenderJson(resp)
+	}
+	var event *models.Event
+	if !finished {
+		event, err = repoManager.StartRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Description)
+	} else {
+		event, err = repoManager.AddRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Description)
+	}
+	if err != nil {
+		controllers.ErrorResp(&resp, response.FatalError, err)
+		return ctrl.RenderJson(resp)
+	}
+	resp.Success = true
+	resp.EventID = event.ID
+	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *AuthorizationCtrl) FinishEvent(eventId uint) revel.Result {
+	var resp response.BasicResponse
+
+	err := repoManager.FinishRepoEvent(ctrl.Tx, eventId)
+	if err != nil {
+		controllers.ErrorResp(&resp, response.FatalError, err)
+		return ctrl.RenderJson(resp)
+	}
+	resp.Success = true
+	return ctrl.RenderJson(resp)
 }
