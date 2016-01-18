@@ -157,9 +157,9 @@ func (ctrl *AuthorizationCtrl) StartEvent(finished bool) revel.Result {
 	}
 	var event *models.Event
 	if !finished {
-		event, err = repoManager.StartRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Description)
+		event, err = repoManager.StartRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Reference, req.Description, req.Level)
 	} else {
-		event, err = repoManager.AddRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Description)
+		event, err = repoManager.AddRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Reference, req.Description, req.Level)
 	}
 	if err != nil {
 		controllers.ErrorResp(&resp, response.FatalError, err)

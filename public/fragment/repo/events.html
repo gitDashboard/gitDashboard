@@ -1,0 +1,111 @@
+<div class="ui attached segment" ng-controller="EventsController">
+	<h2 class="header">
+		<i class="ui left arrow blue icon link" ng-click="setCurrView(null)"/>
+		Events
+	</h2>
+	<div class="ui attached segment">
+		<form class="ui small form">
+			<div class="two fields">
+				<div class="field">
+					<label>Since</label>
+					<input type="text" id="dtSince">
+				</div>
+				<script type="text/javascript">
+					$('#dtSince').datetimepicker({
+						onChangeDateTime:function(dp,$input){
+							if (dp!=null){
+								$input.scope().query.since = dp.getTime()/1000;
+							}
+						}
+					});
+				</script>
+				<div class="field">
+					<label>To</label>
+					<input type="text"  id="dtTo">
+				</div>
+				<script type="text/javascript">
+					$('#dtTo').datetimepicker({
+						onChangeDateTime:function(dp,$input){
+							if (dp!=null){
+								$input.scope().query.to = dp.getTime()/1000;
+							}
+						}
+					});
+				</script>
+			</div>
+			<div class="three fields">
+				<div class="field">
+					<label>Type</label>
+					<input type="text"  ng-model="query.type">
+				</div>
+				<div class="field">
+					<label>Level</label>
+					<select class="ui multiple dropdown" ng-model="query.level" multiple="multiple" ng-options="option as option for option in ['INFO','WARN','ERROR']"/>
+				</div>
+				<div class="field">
+					<label>User</label>
+					<input type="text"  ng-model="query.user">
+				</div>
+			</div>
+			<div class="two fields">
+				<div class="field">
+					<label>Reference</label>
+					<input type="text"  ng-model="query.reference">
+				</div>
+				<div class="field">
+					<label>Description</label>
+					<input type="text"  ng-model="query.description">
+				</div>
+			</div>
+			<div class="ui icon button" ng-click="searchEvents()">
+				<i class="search icon"/>Search
+			</div>
+		</form>
+	</div>
+	<div class="ui segment">
+		<table class="ui table">
+			<thead>
+				<tr>
+					<th>Type</th>
+					<th>User</th>
+					<th>Started</th>
+					<th>Finished</th>
+					<th>Reference</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="event in events">
+					<td>
+						<i class="ui info blue icon" ng-show="event.level=='INFO'"/>
+						<i class="ui warning sign orange icon" ng-show="event.level=='WARN'"/>
+						<i class="ui warning red icon" ng-show="event.level=='ERROR'"/>
+						{[{event.type}]}
+					</td>
+					<td>{[{event.user}]}</td>
+					<td>{[{event.started| date:'medium'}]}</td>
+					<td>{[{event.finished| date:'medium'}]}</td>
+					<td>{[{event.reference}]}</td>
+					<td>{[{event.description}]}</td>
+				</tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<th colspan="5">
+						<i class="ui backward icon" style="cursor:pointer;" ng-click="decPage();"/>
+						<div class="ui left labeled input">
+							<div class="ui basic label">
+								page
+							</div>
+							<input type="number" ng-model="page" ng-change="searchEvents()" style="width:60px;" />
+						</div>
+						<i class="ui forward icon" style="cursor:pointer;" ng-click="incPage()"/>
+					</th>
+					<th style="text-align:right;">
+						<select class="ui dropdown"ng-model="query.count" ng-change="searchEvents()" ng-options="option as option for option in [10,20,50,100]"></select>
+					</th>
+				</tr>
+			</tfoot>
+		</table>
+	</div>
+</div>

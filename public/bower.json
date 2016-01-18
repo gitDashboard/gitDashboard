@@ -24,6 +24,7 @@
     "angular-route": "~1.4.8",
     "angular-gravatar": "~0.4.1",
     "angular-ui": "~0.4.0",
-    "angular-bcrypt": "~1.0.0"
+    "angular-bcrypt": "~1.0.0",
+    "datetimepicker": "~2.4.5"
   }
 }

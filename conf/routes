@@ -22,8 +22,6 @@ POST	/api/v1/repo/:repoId/files				RepoCtrl.Files
 GET	/api/v1/repo/:repoId/file/:fileRef				RepoCtrl.FileContent
 GET	/api/v1/repo/:repoId/info					RepoCtrl.Info
 
-
-
 PUT	/api/v1/admin/repo/mkdir				AdminRepo.CreateFolder
 PUT	/api/v1/admin/repo/create				AdminRepo.CreateRepo
 PUT	/api/v1/admin/repo/init					AdminRepo.InitExistingRepo
@@ -40,12 +38,13 @@ GET 	/api/v1/admin/user/list 					AdminUser.List
 POST 	/api/v1/admin/user/save 				AdminUser.Save
 DELETE	/api/v1/admin/user/:userId 				AdminUser.Delete
 
-
-
 GET 	/api/v1/admin/group/search 				AdminGroup.Search
 GET 	/api/v1/admin/group/list 				AdminGroup.List
 POST 	/api/v1/admin/group/save 				AdminGroup.Save
 DELETE	/api/v1/admin/group/:userId 				AdminGroup.Delete
+
+
+POST	/api/v1/admin/event/search 				AdminEvent.Search
 
 # Map static resources from the /app/public folder to the /public path
 GET     /public/*filepath                       				Static.Serve("public")

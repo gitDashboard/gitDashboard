@@ -1,4 +1,4 @@
-var gitDashboard = angular.module("gitDashboard",['ngRoute','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar','userService','groupService','dtrw.bcrypt']);
+var gitDashboard = angular.module("gitDashboard",['ngRoute','angular-jwt','LocalStorageModule','authService','reposService','ui.gravatar','userService','groupService','dtrw.bcrypt','eventService']);
 
 gitDashboard.config(function($interpolateProvider) {
 	$interpolateProvider.startSymbol('{[{');

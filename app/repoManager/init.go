@@ -2,6 +2,7 @@ package repoManager
 
 import (
 	"errors"
+	"github.com/gitDashboard/client/v1/misc"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/jinzhu/gorm"
 
@@ -17,9 +18,17 @@ func GetRepo(db *gorm.DB, fullPath string) (models.Repo, error) {
 	return repo, nil
 }
 
-func AddRepoEvent(db *gorm.DB, repoId uint, eventType, user, description string) (*models.Event, error) {
+func AddRepoEvent(db *gorm.DB, repoId uint, eventType, user, reference, description string, level misc.EventLevel) (*models.Event, error) {
 	now := time.Now()
-	dbEvent := models.Event{RepoID: repoId, Type: eventType, User: user, Description: description, Started: now, Finished: &now}
+	dbEvent := models.Event{
+		RepoID:      repoId,
+		Type:        eventType,
+		Level:       string(level),
+		User:        user,
+		Reference:   reference,
+		Description: description,
+		Started:     now,
+		Finished:    &now}
 	dbEx := db.Create(&dbEvent)
 	if dbEx.Error != nil {
 		return nil, dbEx.Error
@@ -27,9 +36,16 @@ func AddRepoEvent(db *gorm.DB, repoId uint, eventType, user, description string)
 	return &dbEvent, nil
 }
 
-func StartRepoEvent(db *gorm.DB, repoId uint, eventType, user, description string) (*models.Event, error) {
+func StartRepoEvent(db *gorm.DB, repoId uint, eventType, user, reference, description string, level misc.EventLevel) (*models.Event, error) {
 	now := time.Now()
-	dbEvent := models.Event{RepoID: repoId, Type: eventType, User: user, Description: description, Started: now}
+	dbEvent := models.Event{
+		RepoID:      repoId,
+		Type:        eventType,
+		Level:       string(level),
+		User:        user,
+		Reference:   reference,
+		Description: description,
+		Started:     now}
 	dbEx := db.Create(&dbEvent)
 	if dbEx.Error != nil {
 		return nil, dbEx.Error

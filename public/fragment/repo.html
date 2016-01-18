@@ -30,34 +30,46 @@
 	</div>
 </div>
 
-<div class="">
-	<div class="ui icon menu attached  blue inverted " >
-		<a class="item" ng-click="returnToFolder()">
-			<i class="up big arrow icon"  />
-		</a>
-		<a class="item" ng-show="getUser().IsAdmin()" title="manage permissions" ng-click="getPermissions();currView='public/fragment/repo/permission.html';">
-			<i class=" big icons">
-				<i class="user icon"   />
-				<i class="corner green lock icon"   />
-			</i>
-		</a>
-		<a class="item" ng-show="getUser().IsAdmin()" title="select repository" ng-click="selRepo(repo)" >
-			<i class="square big icon"   ng-hide="selRepoContains(repo)"/>
-			<i class="check square big icon"   ng-show="selRepoContains(repo)"/>
-		</a>
-		<a class="item" ng-show="getUser().IsAdmin()" title="select repository" ng-click="lockRepo(repo)" >
-			<i class="lock  big icon"  ng-show="repo.locked" title="locked"/>
-			<i class="unlock big icon"  ng-hide="repo.locked" title="unlocked"/>
-		</a>
-	</div>
+<div >
+	<div class="ui grid blue segment bottom attached ">
+		<div class="ten wide column">
+			<a class="item" ng-click="returnToFolder()" title="Parent folder">
+				<i class="up big arrow icon"  />
+			</a>
 
-	<div class="ui segment  attached">
+			<a class="item" ng-show="getUser().IsAdmin()" title="Select" ng-click="selRepo(repo)" >
+				<i class="square big icon"   ng-hide="selRepoContains(repo)"/>
+				<i class="check square big icon"   ng-show="selRepoContains(repo)"/>
+			</a>
+			<a class="item" ng-show="getUser().IsAdmin()" title="Lock/Unlock" ng-click="lockRepo(repo)" >
+				<i class="lock  big icon"  ng-show="repo.locked" />
+				<i class="unlock big icon"  ng-hide="repo.locked" />
+			</a>
+
+		</div>
+		<div class="six wide column right aligned">
+			<a class="item" ng-show="getUser().IsAdmin()" title="Permissions" ng-click="getPermissions();currView='public/fragment/repo/permission.html';">
+				<i class=" big icons">
+					<i class="user icon"   />
+					<i class="corner green lock icon"   />
+				</i>
+			</a>
+			<a class="item" ng-show="getUser().IsAdmin()" title="EventLog" ng-click="currView='public/fragment/repo/events.html'" >
+				<i class=" big icons">
+					<i class="file text  icon"   />
+					<i class="corner blue clock icon"   />
+				</i>
+			</a>
+		</div>
+	</div>
+	
+	<div class="ui  top attached segment ">
 		<b>Path:</b>{[{repo.path}]} <i ng-show="getUser().IsAdmin()" class="ui edit link icon"  onclick="$('#renamePopup').modal('show')"/><br/>
 		<b>Url:</b>{[{repo.url}]}<br/>
 		<b>Description:</b>{[{repo.description}]}<i ng-show="getUser().IsAdmin()" class="ui edit link icon"  onclick="$('#descriptionPopup').modal('show')"/><br/>
 	</div>
 	<div ng-include="currView"></div>
-	<div class="ui segment attached" ng-hide="currView!=null">
+	<div class="ui  segment attached" ng-hide="currView!=null">
 		<div class="ui top attached tabular menu" id="repoTab">
 			<a class="active item" data-tab="commits"><i class="ui code icon"/>Commits</a>
 			<a class="item" data-tab="files"><i class="ui file outline icon"/>Files</a>

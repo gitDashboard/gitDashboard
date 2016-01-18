@@ -46,12 +46,15 @@ func ConfigRepo(repo *git.Repository) error {
 	repoConfig, _ := repo.Config()
 	repoConfig.SetString("core.sharedRepository", "group")
 	//create update hook as symbolic link
-	updateHookPath := revel.Config.StringDefault("gd.hookFolder", "") + "/update"
-	repoHookPath := repo.Path() + "/hooks/update"
-	if _, existHookErr := os.Stat(updateHookPath); existHookErr == nil {
-		if _, errHookAlreadyExist := os.Stat(repoHookPath); os.IsNotExist(errHookAlreadyExist) {
-			revel.INFO.Printf("Creatin link from %s to %s \n", updateHookPath, repoHookPath)
-			return os.Symlink(updateHookPath, repo.Path()+"/hooks/update")
+	hooks := []string{"update", "post-update"}
+	for _, hook := range hooks {
+		hookPath := revel.Config.StringDefault("gd.hookFolder", "") + "/" + hook
+		repoHookPath := repo.Path() + "/hooks/" + hook
+		if _, existHookErr := os.Stat(hookPath); existHookErr == nil {
+			if _, errHookAlreadyExist := os.Stat(repoHookPath); os.IsNotExist(errHookAlreadyExist) {
+				revel.INFO.Printf("Creatin link from %s to %s \n", hookPath, repoHookPath)
+				return os.Symlink(hookPath, repo.Path()+"/hooks/"+hook)
+			}
 		}
 	}
 	return nil
