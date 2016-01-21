@@ -10,14 +10,7 @@ type AdminController struct {
 }
 
 func (ctrl *AdminController) CheckPermission() revel.Result {
-	isAdmin := false
-	for _, grp := range ctrl.User.Groups {
-		if grp == "admin" {
-			isAdmin = true
-		}
-	}
-
-	if !isAdmin {
+	if !ctrl.User.Admin {
 		return ctrl.RenderError(errors.New("401: Not authorized"))
 	} else {
 		return nil

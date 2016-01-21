@@ -11,35 +11,12 @@ import (
 	git "gopkg.in/libgit2/git2go.v22"
 	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 	"time"
 )
 
 type AdminRepo struct {
 	controllers.AdminController
-}
-
-func (ctrl *AdminRepo) CreateFolder() revel.Result {
-	var req request.CreateFolderRequest
-	var resp response.CreateFolderResponse
-	err := ctrl.GetJSONBody(&req)
-	if err != nil {
-		return ctrl.RenderError(err)
-	}
-	fullPath := controllers.GitBasePath() + "/" + req.Path
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		err = os.Mkdir(fullPath, 0770)
-		if err != nil {
-			controllers.ErrorResp(&resp, basicResponse.FatalError, err)
-		} else {
-			resp.Success = true
-		}
-	} else {
-		resp.Success = false
-		resp.Error = basicResponse.AlreadyExistError
-	}
-	return ctrl.RenderJson(resp)
 }
 
 func ConfigRepo(repo *git.Repository) error {
@@ -60,8 +37,8 @@ func ConfigRepo(repo *git.Repository) error {
 	return nil
 }
 
-func UpdateRepoDescription(repoPath, description string) {
-	ioutil.WriteFile(repoPath+"/description", []byte(description), 0770)
+func UpdateRepoDescription(repoPath, description string) error {
+	return ioutil.WriteFile(repoPath+"/description", []byte(description), 0770)
 }
 
 func (ctrl *AdminRepo) UpdateDescription(repoId uint) revel.Result {
@@ -75,7 +52,11 @@ func (ctrl *AdminRepo) UpdateDescription(repoId uint) revel.Result {
 			controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
 			return ctrl.RenderJson(resp)
 		}
-		UpdateRepoDescription(dbRepo.Path, description)
+		err := UpdateRepoDescription(controllers.CleanSlashes(controllers.GitBasePath()+"/"+dbRepo.Path), description)
+		if err != nil {
+			controllers.ErrorResp(&resp, basicResponse.FatalError, err)
+			return ctrl.RenderJson(resp)
+		}
 	}
 	resp.Success = true
 	return ctrl.RenderJson(resp)
@@ -89,11 +70,25 @@ func (ctrl *AdminRepo) CreateRepo() revel.Result {
 		return ctrl.RenderError(err)
 	}
 	fullPath := controllers.GitBasePath() + "/"
-	if !strings.HasSuffix(req.Path, ".git") {
-		fullPath = fullPath + req.Path + ".git"
-	} else {
-		fullPath = fullPath + req.Path
+
+	if !strings.HasSuffix(req.Name, ".git") {
+		req.Name = req.Name + ".git"
 	}
+
+	var relPath string
+	if req.FolderID != 0 {
+		var dbFolder models.Folder
+		db := ctrl.Tx.Find(&dbFolder, req.FolderID)
+		if db.Error != nil {
+			controllers.ErrorResp(&resp, basicResponse.DbError, db.Error)
+			return ctrl.RenderJson(resp)
+		}
+		relPath = dbFolder.Path + "/" + req.Name
+	} else {
+		relPath = req.Name
+	}
+
+	fullPath = controllers.CleanSlashes(fullPath + relPath)
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		repo, err := git.InitRepository(fullPath, true)
 		if err != nil {
@@ -108,7 +103,7 @@ func (ctrl *AdminRepo) CreateRepo() revel.Result {
 		if err != nil {
 			panic(err)
 		}
-		dbRepo := &models.Repo{Path: controllers.CleanSlashes(fullPath)}
+		dbRepo := &models.Repo{Path: relPath, Name: req.Name, FolderID: req.FolderID}
 		ctrl.Tx.Create(dbRepo)
 		resp.Success = true
 	} else {
@@ -155,27 +150,22 @@ func (ctrl *AdminRepo) Permissions(repoId uint) revel.Result {
 		controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
 		return ctrl.RenderJson(resp)
 	}
-	ctrl.Tx.Order("position").Where("repo_id=?", dbRepo.ID).Find(&dbRepo.Permissions)
+	ctrl.Tx.Preload("Users").Order("position").Where("repo_id=?", dbRepo.ID).Find(&dbRepo.Permissions)
 
-	resp.Permissions = make([]response.RepoPermission, len(dbRepo.Permissions), len(dbRepo.Permissions))
+	resp.Permissions = make([]response.Permission, len(dbRepo.Permissions), len(dbRepo.Permissions))
 	for i, perm := range dbRepo.Permissions {
-		var repoPerm response.RepoPermission
+		var repoPerm response.Permission
 		repoPerm.Ref = perm.Branch
 		repoPerm.Position = perm.Position
 		repoPerm.Granted = perm.Granted
-		if perm.UserID.Valid {
-			repoPerm.UserID = perm.UserID.Int64
-			//search user
-			var dbUser models.User
-			ctrl.Tx.First(&dbUser, perm.UserID)
-			repoPerm.UserName = dbUser.Username
-		}
-		if perm.GroupID.Valid {
-			repoPerm.GroupID = perm.GroupID.Int64
-			//search group
-			var dbGroup models.Group
-			ctrl.Tx.First(&dbGroup, perm.GroupID)
-			repoPerm.GroupName = dbGroup.Name
+		repoPerm.Users = make([]response.User, len(perm.Users), len(perm.Users))
+		for u, user := range perm.Users {
+			repoPerm.Users[u].Username = user.Username
+			repoPerm.Users[u].Type = user.Type
+			repoPerm.Users[u].Name = user.Name
+			if user.Email.Valid {
+				repoPerm.Users[u].Email = user.Email.String
+			}
 		}
 		if perm.Type != "" {
 			repoPerm.Types = strings.Split(perm.Type, ",")
@@ -213,19 +203,23 @@ func (ctrl *AdminRepo) UpdatePermissions(repoId uint) revel.Result {
 	//insert all new permissions
 	for _, newPerm := range req.Permissions {
 		dbPermission := models.Permission{
-			RepoID:   repoId,
 			Branch:   newPerm.Ref,
 			Granted:  newPerm.Granted,
 			Position: newPerm.Position,
 		}
+		dbPermission.RepoID.Scan(repoId)
 		for _, permType := range newPerm.Types {
 			if permType != "" {
 				dbPermission.Type = dbPermission.Type + "," + permType
 			}
 		}
 		dbPermission.Type = dbPermission.Type[1:]
-		dbPermission.UserID.Scan(newPerm.UserID)
-		dbPermission.GroupID.Scan(newPerm.GroupID)
+		dbPermission.Users = make([]models.User, len(newPerm.Users), len(newPerm.Users))
+		for u, user := range newPerm.Users {
+			var dbUser models.User
+			ctrl.Tx.First(&dbUser, user.ID)
+			dbPermission.Users[u] = dbUser
+		}
 		db := ctrl.Tx.Create(&dbPermission)
 		if len(db.GetErrors()) > 0 {
 			controllers.ErrorResp(&resp, basicResponse.FatalError, db.GetErrors()[0])
@@ -273,33 +267,33 @@ func (ctrl *AdminRepo) Move(repoId uint) revel.Result {
 		controllers.ErrorResp(&resp, basicResponse.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
-	//extract reponame
-	repoStat, err := os.Stat(dbRepo.Path)
-	if err != nil {
-		controllers.ErrorResp(&resp, basicResponse.FatalError, err)
-		return ctrl.RenderJson(resp)
-	}
 	var newRepoPath string
-	if req.DestName == "" {
-		//move
-		newRepoPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + req.DestPath + "/" + repoStat.Name())
-	} else {
-		//rename
-		if req.DestPath == "" {
-			req.DestPath = strings.Replace(path.Dir(dbRepo.Path)+"/", controllers.GitBasePath(), "", 1)
+	var dbFolder models.Folder
+	if req.FolderID != 0 {
+		db := ctrl.Tx.First(&dbFolder, req.FolderID)
+		if db.Error != nil {
+			controllers.ErrorResp(&resp, basicResponse.DbError, db.Error)
+			return ctrl.RenderJson(resp)
 		}
-		newRepoPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + req.DestPath + "/" + req.DestName)
+		newRepoPath = dbFolder.Path + "/" + req.DestName
+	} else {
+		newRepoPath = req.DestName
 	}
-	db = ctrl.Tx.Table("repos").Where("id=?", repoId).Update("path", newRepoPath)
+	oldRepoPath := dbRepo.Path
+	db = ctrl.Tx.Table("repos").Where("id=?", repoId).Update("path", newRepoPath).Update("name", req.DestName).Update("folder_id", req.FolderID)
 
 	if db.Error != nil {
 		controllers.ErrorResp(&resp, basicResponse.FatalError, db.Error)
 		return ctrl.RenderJson(resp)
 	}
-	err = os.Rename(dbRepo.Path, newRepoPath)
+	src := controllers.CleanSlashes(controllers.GitBasePath() + "/" + oldRepoPath)
+	dst := controllers.CleanSlashes(controllers.GitBasePath() + "/" + newRepoPath)
+	revel.INFO.Printf("%s %s\n ", src, dst)
+	err = os.Rename(src, dst)
 	if err != nil {
 		go ctrl.unlockRepo(repoId)
-		panic(err) //to rollback the transaction
+		ctrl.Tx.Rollback()
+		controllers.ErrorResp(&resp, basicResponse.FatalError, err)
 	}
 	//unlock repo
 	if toUnlock {

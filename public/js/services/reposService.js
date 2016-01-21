@@ -1,13 +1,9 @@
 var reposService = angular.module('reposService', []);
 
 reposService.factory('Repo', ['$q','$http',function ($q,$http) {
-	function list(path){
-		var respDef = $q.defer();
-		var req ={
-			"subPath":path
-		};
-		console.log(req);
-		$http.post("api/v1/repos/list",req).success(function (data){
+	function list(parentFolderId){
+		var respDef = $q.defer();		
+		$http.get("api/v1/repos/"+parentFolderId+"/list").success(function (data){
 			respDef.resolve(data);
 		}).error(function (data,status){
 			respDef.reject("Error: "+data+" Status:"+status);
@@ -76,12 +72,14 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;	
 	}
 
-	function createFolder(path){
+	function createFolder(parentId,name,description){
 		var req={
-			'path':path
+			'parentId':parentId,
+			'name':name,
+			'description':description
 		}
 		var respDef = $q.defer();
-		$http.put("api/v1/admin/repo/mkdir",req).success(function (data){
+		$http.put("api/v1/admin/folder/mkdir",req).success(function (data){
 			respDef.resolve(data);
 		}).error(function (data,status){
 			respDef.reject({"error":data,"status":status} );
@@ -89,9 +87,12 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;	
 	}
 
-	function createRepo(path,description){
+	
+
+	function createRepo(folderId,name,description){
 		var req={
-			'path':path,
+			'folderId':folderId,
+			'name':name,
 			'description':description
 		}
 		var respDef = $q.defer();
@@ -156,12 +157,14 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;
 	}
 
-	function moveRepo(repo,destFolder){
+	function moveRepo(repo,folderId){
 		var respDef = $q.defer();
 		var req={
-			destPath:destFolder,
+			folderId:parseInt(folderId),
 			destName:repo.name
 		};
+		console.log("moive");
+		console.log(req);
 		$http.post("api/v1/admin/repo/"+repo.id+"/move",req).success(function (data){
 			data.repo = repo;
 			respDef.resolve(data);

@@ -7,12 +7,10 @@ import (
 	"github.com/gitDashboard/client/v1/response"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
-	"github.com/gitDashboard/gitDashboard/app/repoManager"
 	"github.com/revel/revel"
 	git "gopkg.in/libgit2/git2go.v22"
 	"html/template"
 	"io/ioutil"
-	"os"
 	"path"
 	"regexp"
 	"sort"
@@ -33,95 +31,22 @@ func readRepoDescription(repoPath string, repoInfo *response.RepoInfo) {
 	}
 }
 
-func (ctrl *RepoCtrl) checkIsRepo(basePath, repoPath string, repoInfo *response.RepoInfo) error {
-	fullRepoPath := controllers.CleanSlashes(repoPath + "/" + repoInfo.Name)
-	repoInfo.Path = strings.Replace(fullRepoPath, basePath, "", 1)
-	repo, _ := repoManager.GetRepo(ctrl.Tx, fullRepoPath)
-	if repo.ID > 0 {
-		repoInfo.ID = repo.ID
-		repoInfo.IsRepo = true
-		readRepoDescription(fullRepoPath, repoInfo)
-		//checking permission
-		authorized, _, err := CheckAutorization(ctrl.Tx, fullRepoPath, ctrl.User.Username, "read", "")
-		if err != nil {
-			return err
-		}
-		repoInfo.IsAuthorized = authorized
-	} else {
-		repoInfo.Description = "Folder"
-		repoInfo.IsAuthorized = true
-	}
-
-	return nil
-}
-
-type ByIsRepo []response.RepoInfo
-
-func (a ByIsRepo) Len() int      { return len(a) }
-func (a ByIsRepo) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ByIsRepo) Less(i, j int) bool {
-	var fakeStr1 string
-	var fakeStr2 string
-	if a[i].IsRepo {
-		fakeStr1 = "r" + a[i].Name
-	} else {
-		fakeStr1 = "d" + a[i].Name
-	}
-	if a[j].IsRepo {
-		fakeStr2 = "r" + a[j].Name
-	} else {
-		fakeStr2 = "d" + a[j].Name
-	}
-	return fakeStr1 < fakeStr2
-}
-
-func (ctrl *RepoCtrl) List() revel.Result {
-	var req request.RepoListRequest
+func (ctrl *RepoCtrl) List(parentFolder uint) revel.Result {
 	var resp response.RepoListResponse
-	err := ctrl.GetJSONBody(&req)
-	if err != nil {
-		return ctrl.RenderError(err)
-	}
-	baseDirPath := controllers.GitBasePath()
-	currDirPath := controllers.CleanSlashes(baseDirPath + "/" + req.SubPath)
-	revel.INFO.Println("Reading repositories from path:", currDirPath)
+	var repos []models.Repo
+	ctrl.Tx.Where("folder_id = ?", parentFolder).Order("name asc").Find(&repos)
 
-	repo, _ := repoManager.GetRepo(ctrl.Tx, currDirPath)
-	if repo.ID != 0 {
-		//wrong ws , possible security problem: return empty list
-		return ctrl.RenderJson(resp)
+	resp.Repositories = make([]response.RepoInfo, len(repos), len(repos))
+	for i, repo := range repos {
+		var repoInfo response.RepoInfo
+		repoInfo.ID = repo.ID
+		repoInfo.Name = repo.Name
+		readRepoDescription(controllers.CleanSlashes(controllers.GitBasePath()+"/"+repo.Path), &repoInfo)
+		repoInfo.Path = repo.Path
+		repoInfo.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(repoInfo.Path)
+		repoInfo.IsAuthorized, repoInfo.Locked, _ = CheckAutorization(ctrl.Tx, repo.Path, ctrl.User.Username, "read", "/")
+		resp.Repositories[i] = repoInfo
 	}
-
-	currDir, err := os.Open(currDirPath)
-	if err != nil {
-		return ctrl.RenderError(err)
-	}
-
-	finfo, err := currDir.Readdir(-1)
-	if err != nil {
-		return ctrl.RenderError(err)
-	}
-	resp.Repositories = make([]response.RepoInfo, 0, len(finfo))
-	for _, f := range finfo {
-		revel.INFO.Println("check ", f.Name(), f.Mode())
-		if f.IsDir() || (f.Mode()&os.ModeSymlink != 0) {
-			var repoInfo response.RepoInfo
-			repoInfo.Name = f.Name()
-			repoInfo.Path = "/" + strings.Replace(currDirPath, controllers.GitBasePath(), "", 1)
-			repoInfo.Locked = repo.Locked
-			err = ctrl.checkIsRepo(baseDirPath, currDirPath, &repoInfo)
-			if err != nil {
-				revel.ERROR.Println(err.Error())
-				return ctrl.RenderError(err)
-			}
-			if repoInfo.IsRepo {
-				repoInfo.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(repoInfo.Path)
-			}
-			resp.Repositories = append(resp.Repositories, repoInfo)
-		}
-	}
-	sort.Sort(ByIsRepo(resp.Repositories))
-	revel.INFO.Printf("result %+v\n ", resp)
 	return ctrl.RenderJson(resp)
 }
 
@@ -145,30 +70,23 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 	//checking permission
 	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 	if !authorized {
-		resp.Success = false
-		resp.Error = response.PermissionDeniedError
+		controllers.ErrorResp(&resp, response.PermissionDeniedError, nil)
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(dbRepo.Path)
+	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 	defer repo.Free()
 	refName := req.Branch
 	walk, err := repo.Walk()
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 	defer walk.Free()
@@ -208,7 +126,6 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 		return true
 	})
 end:
-	revel.INFO.Printf("response: %+v\n", resp)
 	return ctrl.RenderJson(resp)
 }
 
@@ -218,38 +135,29 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 
 	ctrl.Tx.First(&dbRepo, repoId)
 	if dbRepo.ID != uint(repoId) {
-		resp.Success = false
-		resp.Error = response.NoRepositoryFoundError
+		controllers.ErrorResp(&resp, response.NoRepositoryFoundError, nil)
 		return ctrl.RenderJson(resp)
 	}
 	//checking permission
 	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 	if !authorized {
-		resp.Success = false
-		resp.Error = response.PermissionDeniedError
+		controllers.ErrorResp(&resp, response.PermissionDeniedError, nil)
 		return ctrl.RenderJson(resp)
 	}
 
-	repo, err := git.OpenRepository(dbRepo.Path)
+	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 	defer repo.Free()
 	refIt, err := repo.NewReferenceIterator()
 	if err != nil {
-		resp.Success = false
-		resp.Error = response.FatalError
-		resp.Error.Message = resp.Error.Message + err.Error()
-
+		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 	defer refIt.Free()
@@ -259,13 +167,13 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 		resp.Info.References = append(resp.Info.References, refName)
 		refName, refNameErr = refNameIt.Next()
 	}
+	resp.Info.FolderID = dbRepo.FolderID
 	resp.Info.Name = path.Base(dbRepo.Path)
-	resp.Info.Path = "/" + strings.Replace(dbRepo.Path, controllers.GitBasePath(), "", 1)
-	resp.Info.FolderPath = resp.Info.Path[0:strings.LastIndex(resp.Info.Path, "/")]
+	resp.Info.Path = dbRepo.Path
 	resp.Info.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(resp.Info.Path)
 	resp.Info.ID = dbRepo.ID
 	resp.Info.Locked = dbRepo.Locked
-	readRepoDescription(dbRepo.Path, &resp.Info)
+	readRepoDescription(controllers.CleanSlashes(controllers.GitBasePath()+"/"+dbRepo.Path), &resp.Info)
 	resp.Success = true
 	return ctrl.RenderJson(resp)
 }
@@ -320,7 +228,7 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 		resp.Error = response.PermissionDeniedError
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(dbRepo.Path)
+	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -403,7 +311,7 @@ func (ctrl *RepoCtrl) FileContent(repoId int, fileRef string) revel.Result {
 		resp.Error = response.PermissionDeniedError
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(dbRepo.Path)
+	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -488,7 +396,7 @@ func (ctrl *RepoCtrl) Commit(repoId uint, commitId string) revel.Result {
 		resp.Error = response.PermissionDeniedError
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(dbRepo.Path)
+	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError

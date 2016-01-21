@@ -22,7 +22,7 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 	}
 
 	$scope.returnToFolder = function(){
-		$location.path("").search({path:$scope.repo.folderPath});
+		$location.path("").search({folderId:$scope.repo.folderId});
 	}
 
 	$scope.decPage=function(){
@@ -151,34 +151,6 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		}
 		console.log(file);
 	}
-
-
-	$scope.getPermissions=function(){
-		Repo.permissions(repoId).then(function(data){
-			if (data.success){
-				$scope.permissions = data.permissions;
-			}else{
-				alert(data.error.message);
-			}
-		},function(error){
-			console.log(error);
-			if (error.status==401){
-				$location.path("login");
-			}
-		});
-	}
-	$scope.addPermission=function(){
-		$scope.permissions.push({
-			userName:"",
-			groupName:"",
-			type:"",
-			ref:""
-		});
-	}
-	$scope.removePermission=function(pos){
-		$scope.permissions.splice(pos,1);
-	}
-
 	$scope.updateDescription=function(){
 		Repo.updateDescription(repoId,$scope.repo.description).then(function(data){
 			if (!data.success){
@@ -192,19 +164,7 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		});
 	}
 
-	$scope.selUser=function(permission){
-		$scope.currPerm=permission;
-		$('#searchUserPopup').modal('show');		
-	}
-
-	$scope.selGroup=function(permission){
-		$scope.currPerm=permission;
-		$('#searchGroupPopup').modal('show');		
-	}
-
-	$scope.updatePermissions=function(){
-		Repo.updatePermissions(repoId,$scope.permissions);
-	}
+	
 
 	$scope.setCurrView=function(view){
 		$scope.viewHistory.push($scope.currView);
@@ -255,7 +215,7 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 	}
 
 	$scope.renameRepo=function(repo){
-		Repo.moveRepo(repo,"").then(function(data){
+		Repo.moveRepo(repo,repo.folderId).then(function(data){
 			console.log(data);
 			if (data.success){
 				$scope.info();		

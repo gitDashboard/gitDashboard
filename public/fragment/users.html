@@ -29,11 +29,15 @@
 					<label>Email</label>
 					<input type="text" ng-model="currUser.email"/>
 				</div>
+				<div class="ui toggle checkbox">
+					<input type="checkbox" ng-model="currUser.admin"/>
+					<label>Admin</label>
+				</div>
 			</form>
 		</div>
 		<div class="actions">
 			<div class="ui approve button" ng-click="saveUser(currUser)" onclick="$('#editUserPopup').modal('hide');">Save</div>
-    			<div class="ui cancel button" onclick="$('#editUserPopup').modal('hide');">Cancel</div>
+			<div class="ui cancel button" onclick="$('#editUserPopup').modal('hide');">Cancel</div>
 		</div>
 	</div>
 
@@ -48,6 +52,7 @@
 					<th>Type</th>
 					<th>Name</th>
 					<th>Email</th>
+					<th>Admin</th>
 					<th>Actions</th>
 				</tr>
 			</thead>
@@ -64,6 +69,9 @@
 						{[{user.email}]}
 					</td>
 					<td>
+						{[{user.admin}]}
+					</td>
+					<td>
 						<div class="ui icon button" ng-click="editUser(user)">
 							<i class="ui edit orange icon" />
 						</div>
@@ -73,7 +81,7 @@
 					</td>
 				</tr>
 				<tr>
-					<td colspan="5">
+					<td colspan="6">
 						<div class="ui icon button" ng-click="editUser(null)" >
 							<i class="add icon"/>
 							Add User

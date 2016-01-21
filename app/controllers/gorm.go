@@ -31,31 +31,14 @@ func InitDB() {
 	perm := &models.Permission{}
 	user := &models.User{}
 	repo := &models.Repo{}
-	group := &models.Group{}
+	folder := &models.Folder{}
 	event := &models.Event{}
-	adminGrp := &models.Group{Name: "admin", Description: "Administration group"}
-	if !Db.HasTable(group) {
-		revel.INFO.Println("Creating groups table")
-		Db.CreateTable(group)
-		Db.Create(adminGrp)
-	} else {
-		Db.AutoMigrate(group)
-	}
-	if !Db.HasTable(user) {
-		revel.INFO.Println("Creating users table")
-		Db.CreateTable(user)
-		//Db.Table("users_groups").AddForeignKey("group_id", "groups(id)", "CASCADE", "RESTRICT")
-		//Db.Table("users_groups").AddForeignKey("user_id", "users(id)", "CASCADE", "RESTRICT")
 
-		var adminPwdFld sql.NullString
-		adminPwd, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
-		adminPwdFld.String = string(adminPwd)
-		adminPwdFld.Valid = true
-		adminUser := &models.User{Username: "admin", Type: "internal", Password: adminPwdFld, Name: "Admin user"}
-		adminUser.Groups = []models.Group{*adminGrp}
-		Db.Create(adminUser)
+	if !Db.HasTable(folder) {
+		revel.INFO.Println("Creating folders table")
+		Db.CreateTable(folder)
 	} else {
-		Db.AutoMigrate(user)
+		Db.AutoMigrate(folder)
 	}
 	if !Db.HasTable(repo) {
 		revel.INFO.Println("Creating repos table")
@@ -66,11 +49,26 @@ func InitDB() {
 	if !Db.HasTable(perm) {
 		revel.INFO.Println("Creating permissions table")
 		Db.CreateTable(perm)
-		Db.Model(perm).AddForeignKey("repo_id", "repos(id)", "CASCADE", "RESTRICT")
+		/*Db.Model(perm).AddForeignKey("repo_id", "repos(id)", "CASCADE", "RESTRICT")
 		Db.Model(perm).AddForeignKey("user_id", "users(id)", "CASCADE", "RESTRICT")
-		Db.Model(perm).AddForeignKey("group_id", "groups(id)", "CASCADE", "RESTRICT")
+		Db.Model(perm).AddForeignKey("group_id", "groups(id)", "CASCADE", "RESTRICT")*/
 	} else {
 		Db.AutoMigrate(perm)
+	}
+	if !Db.HasTable(user) {
+		revel.INFO.Println("Creating users table")
+		Db.CreateTable(user)
+		Db.Table("users_permissions").AddForeignKey("permission_id", "permissions(id)", "CASCADE", "RESTRICT")
+		Db.Table("users_permissions").AddForeignKey("user_id", "users(id)", "CASCADE", "RESTRICT")
+
+		var adminPwdFld sql.NullString
+		adminPwd, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+		adminPwdFld.String = string(adminPwd)
+		adminPwdFld.Valid = true
+		adminUser := &models.User{Username: "admin", Type: "internal", Password: adminPwdFld, Name: "Admin user", Admin: true}
+		Db.Create(adminUser)
+	} else {
+		Db.AutoMigrate(user)
 	}
 	if !Db.HasTable(event) {
 		revel.INFO.Println("Creating events table")

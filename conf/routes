@@ -15,14 +15,23 @@ POST 	/api/v1/event/start					AuthorizationCtrl.StartEvent(false)
 POST 	/api/v1/event/add					AuthorizationCtrl.StartEvent(true)
 GET 	/api/v1/event/:eventId/finish				AuthorizationCtrl.FinishEvent
 
-POST 	/api/v1/repos/list 					RepoCtrl.List
+GET 	/api/v1/folders/:parentFolder/list 			FolderCtrl.List
+GET 	/api/v1/folder/:folderId 					FolderCtrl.Get
+POST 
+
+GET 	/api/v1/repos/:parentFolder/list 				RepoCtrl.List
 POST	/api/v1/repo/:repoId/commits				RepoCtrl.Commits
 GET	/api/v1/repo/:repoId/commit/:commitId			RepoCtrl.Commit
 POST	/api/v1/repo/:repoId/files				RepoCtrl.Files
 GET	/api/v1/repo/:repoId/file/:fileRef				RepoCtrl.FileContent
 GET	/api/v1/repo/:repoId/info					RepoCtrl.Info
 
-PUT	/api/v1/admin/repo/mkdir				AdminRepo.CreateFolder
+### ADMIN API ###
+PUT	/api/v1/admin/folder/mkdir				AdminFolder.CreateFolder
+GET	/api/v1/admin/folder/:folderId/permissions		AdminFolder.Permissions
+POST	/api/v1/admin/folder/:folderId/permissions		AdminFolder.UpdatePermissions
+
+
 PUT	/api/v1/admin/repo/create				AdminRepo.CreateRepo
 PUT	/api/v1/admin/repo/init					AdminRepo.InitExistingRepo
 POST	/api/v1/admin/repo/:repoId/description			AdminRepo.UpdateDescription
@@ -37,12 +46,6 @@ GET 	/api/v1/admin/user/ldapSearch				AdminUser.LdapSearch
 GET 	/api/v1/admin/user/list 					AdminUser.List
 POST 	/api/v1/admin/user/save 				AdminUser.Save
 DELETE	/api/v1/admin/user/:userId 				AdminUser.Delete
-
-GET 	/api/v1/admin/group/search 				AdminGroup.Search
-GET 	/api/v1/admin/group/list 				AdminGroup.List
-POST 	/api/v1/admin/group/save 				AdminGroup.Save
-DELETE	/api/v1/admin/group/:userId 				AdminGroup.Delete
-
 
 POST	/api/v1/admin/event/search 				AdminEvent.Search
 

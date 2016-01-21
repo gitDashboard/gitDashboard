@@ -21,34 +21,61 @@ type AuthorizationCtrl struct {
 	controllers.GormController
 }
 
+func checkFolderAuthorization(db *gorm.DB, folderId, userID uint, operation, refName string) bool {
+	var dbFolder models.Folder
+	dbExec := db.First(&dbFolder, folderId)
+	if dbExec.Error != nil {
+		revel.ERROR.Println(dbExec.Error)
+		return false
+	}
+	var authorized bool
+	var perms []models.Permission
+	db.Order("position").Where("folder_id = ? and user_id = ? and type like ?", folderId, userID, "%"+operation+"%").Find(&perms)
+
+	oneMatch := false
+	for _, perm := range perms {
+		if operation != "read" {
+			revel.INFO.Printf("checking permission : %+v\n", perm)
+			match, err := regexp.MatchString(perm.Branch, refName)
+			if err != nil {
+				return false
+			}
+			if match {
+				oneMatch = true
+				revel.INFO.Println("match found")
+				authorized = perm.Granted
+			} else {
+				revel.INFO.Println("match not found")
+			}
+		} else {
+			oneMatch = true
+			authorized = true
+		}
+	}
+	if !oneMatch && dbFolder.ParentID != 0 {
+		revel.INFO.Println("checkAutentication : no match on folder, search on parent folder")
+		authorized = checkFolderAuthorization(db, dbFolder.ParentID, userID, operation, refName)
+	}
+	return authorized
+}
+
 func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string) (bool, bool, error) {
 	var user models.User
 	//finding user
-	db.Preload("Groups").Where("username = ?", username).First(&user)
-	//searching for admin group
-	isAdmin := false
-	groupIds := make([]uint, len(user.Groups), len(user.Groups))
-	for i, grp := range user.Groups {
-		groupIds[i] = grp.ID
-		if grp.Name == "admin" {
-			isAdmin = true
-		}
-	}
+	db.Where("username = ?", username).First(&user)
+
 	//finding repo
 	var repo models.Repo
 	db.Where("path = ?", repoDir).First(&repo)
 
-	if isAdmin {
+	if user.Admin {
 		return true, repo.Locked, nil
 	}
 	//finding permissions
 	var perms []models.Permission
-	if len(groupIds) > 0 {
-		db.Order("position").Where("repo_id = ? and (user_id = ? or group_id IN (?)) and type like ?", repo.ID, user.ID, groupIds, "%"+operation+"%").Find(&perms)
-	} else {
-		db.Order("position").Where("repo_id = ? and user_id = ? and type like ?", repo.ID, user.ID, "%"+operation+"%").Find(&perms)
-	}
+	db.Order("position").Where("repo_id = ? and user_id = ? and type like ?", repo.ID, user.ID, "%"+operation+"%").Find(&perms)
 	authorized := false
+	oneMatch := false
 	if len(perms) > 0 {
 		for _, perm := range perms {
 			if operation != "read" {
@@ -57,13 +84,21 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 					return false, false, err
 				}
 				if match {
+					oneMatch = true
 					authorized = perm.Granted
 				}
 			} else {
+				oneMatch = true
 				authorized = true
 			}
 		}
 	}
+	if !oneMatch {
+		//search on parent folder authorization
+		revel.INFO.Println("checkAutentication : no match on repository, search on parent folder")
+		authorized = checkFolderAuthorization(db, repo.FolderID, user.ID, operation, refName)
+	}
+
 	revel.INFO.Println("authorized:", authorized)
 	return authorized, repo.Locked, nil
 }
@@ -115,10 +150,7 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 		jwtUser.Username = loginReq.Username
 		jwtUser.Name = dbUser.Name
 		jwtUser.Email = dbUser.Email.String
-		jwtUser.Groups = make([]string, len(dbUser.Groups), len(dbUser.Groups))
-		for i, group := range dbUser.Groups {
-			jwtUser.Groups[i] = group.Name
-		}
+		jwtUser.Admin = dbUser.Admin
 
 		jwtToken := jwt.New(jwt.SigningMethodHS256)
 		jwtToken.Claims = structs.Map(jwtUser)

@@ -1,0 +1,161 @@
+<div class="ui modal" id="searchUserPopup" ng-controller="SelUserController">
+	<i class="ui close icon"/>
+	<div class="header">
+		Search User
+	</div>
+	<div class="content">
+		<form class="ui form">
+			<div class="field">
+				<label>Username</label>
+				<input type="text" ng-model="username"/>
+			</div>
+			<div class="ui icon button" ng-click="search()"><i class="search  blue icon"/>Search</div>
+		</form>
+		<table class="ui celled table">
+			<thead>
+				<tr>
+					<th>Username</th>
+					<th>Name</th>
+					<th>Type</th>
+					<th>Sel</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="user in foundedUsers">
+					<td>
+						{[{user.username}]}
+					</td>
+					<td>
+						{[{user.name}]}
+					</td>
+					<td>
+						{[{user.type}]}
+					</td>
+					<td>
+						<div class="ui button" ng-click="selectUser(user)">Sel</div>
+					</td>
+				</tr>
+			</tbody>
+			
+		</table>
+	</div>
+</div>
+
+<div class="ui attached segment" ng-init="getPermissions()">
+	<h2 class="header">
+		Manage  Permission
+	</h2>
+	<h3 class="header">
+		Path: /{[{info.path}]} ({[{info.description}]})
+	</h3>
+	<div class="content">
+		<div class="ui styled fluid accordion" id="permAccordion">
+			<div class="title" ng-repeat-start="permission in permissions">
+				<div class="ui grid">
+					<div class="ten wide column">
+						<i class="dropdown icon"></i>
+						<i ng-class="{'check circle green icon':permission.granted, 'minus circle red icon':!permission.granted}"/>#{[{permission.position}]} {[{permission.types}]} Ref:{[{permission.ref}]}
+					</div>
+					<div class="six wide column right aligned">
+						<i class="red trash icon clickable" ng-click="removePermission($index)"></i>
+					</div>
+				</div>
+			</div>
+			<div class="content" ng-repeat-end>
+				<div class="ui grid" >
+					<div class="four wide column ">
+						<form class="ui form">
+							<div class=" field">
+								<label>Position:</label>
+								<input type="number" class="ui input" ng-model="permission.position" />
+							</div>
+							<div class=" field">
+								<label>RefName(regexp):</label>
+								<input type="text" class="ui input" ng-model="permission.ref" />
+							</div>
+							<div class="grouped fields">
+								<label>Permissions</label>
+								<div class="field">
+									<div class="ui slider checkbox">
+										<input type="radio" ng-click="grant(permission,'read')" ng-checked="isGranted(permission,'read')">
+										<label>Read</label>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui slider checkbox">
+										<input type="radio" ng-click="grant(permission,'commit')" ng-checked="isGranted(permission,'commit')">
+										<label>Commit</label>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui slider checkbox">
+										<input type="radio" ng-click="grant(permission,'delete')" ng-checked="isGranted(permission,'delete')">
+										<label>Delete</label>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui slider checkbox">
+										<input type="radio" ng-click="grant(permission,'tag')" ng-checked="isGranted(permission,'tag')">
+										<label>Modify Tag</label>
+									</div>
+								</div>
+							</div>
+							<div class="ui toggle checkbox">
+								<input type="checkbox" class="input" ng-checked="permission.granted" ng-model="permission.granted"/>
+								<label>Granted</label>				
+							</div>
+						</form>
+
+					</div>
+					<div class="twelve wide column">
+						<b>Users</b><i class="ui search icon clickable" ng-click="selUser(permission)"/>
+						<table class="ui celled table">
+							<thead>
+								<tr>
+									<th>Username</th>
+									<th>Name</th>
+									<th>Type</th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr  ng-repeat="user in permission.users">
+									<td>
+										{[{user.username}]}
+									</td>
+									<td>
+										{[{user.name}]}
+									</td>
+									<td>
+										{[{user.type}]}
+									</td>
+									<td>
+										<i class="ui clickable trash red icon" ng-click="removeUser(permission,$index)"/>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script type="text/javascript">
+			$('#permAccordion').accordion();
+		</script>
+		<div class="ui attached segment">
+			<div class="ui grid">
+				<div class="eight wide column">
+					<div class="ui icon button" ng-click="addPermission()">
+						<i class="add green icon"/>
+						Add Permission
+					</div>
+				</div>
+				<div class="eight wide column right aligned">
+					<div class="ui green button" ng-click="updatePermissions()">Save</div>
+					<div class="ui red button" onclick="window.history.back();">Cancel</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</div>

@@ -31,7 +31,7 @@ func (ctrl *AdminUser) Search() revel.Result {
 	}
 	resp.Users = make([]response.User, len(dbUsers), len(dbUsers))
 	for i, dbUser := range dbUsers {
-		resp.Users[i] = response.User{ID: dbUser.ID, Username: dbUser.Username, Type: dbUser.Type}
+		resp.Users[i] = response.User{ID: dbUser.ID, Username: dbUser.Username, Name: dbUser.Name, Type: dbUser.Type, Admin: dbUser.Admin}
 	}
 	resp.Success = true
 	return ctrl.RenderJson(resp)
@@ -53,7 +53,13 @@ func (ctrl *AdminUser) List() revel.Result {
 	ctrl.Tx.Find(&dbUsers)
 	resp.Users = make([]response.User, len(dbUsers), len(dbUsers))
 	for i, dbUser := range dbUsers {
-		resp.Users[i] = response.User{ID: dbUser.ID, Username: dbUser.Username, Type: dbUser.Type, Name: dbUser.Name, Email: dbUser.Email.String}
+		resp.Users[i] = response.User{ID: dbUser.ID,
+			Username: dbUser.Username,
+			Type:     dbUser.Type,
+			Name:     dbUser.Name,
+			Email:    dbUser.Email.String,
+			Admin:    dbUser.Admin,
+		}
 	}
 	resp.Success = true
 	return ctrl.RenderJson(resp)
@@ -80,6 +86,7 @@ func (ctrl *AdminUser) Save() revel.Result {
 	dbUser.Username = req.Username
 	dbUser.Type = req.Type
 	dbUser.Name = req.Name
+	dbUser.Admin = req.Admin
 	dbUser.Email.Scan(req.Email)
 	if dbUser.Type == "internal" && req.Password != "" {
 		dbUser.Password.Valid = true

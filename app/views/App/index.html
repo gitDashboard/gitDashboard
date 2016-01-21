@@ -6,14 +6,14 @@
 	<script type="text/javascript" src="public/js/services/authService.js"></script>
 	<script type="text/javascript" src="public/js/services/reposService.js"></script>
 	<script type="text/javascript" src="public/js/services/userService.js"></script>
-	<script type="text/javascript" src="public/js/services/groupService.js"></script>
 	<script type="text/javascript" src="public/js/services/eventService.js"></script>
+	<script type="text/javascript" src="public/js/services/folderService.js"></script>
 	<script type="text/javascript" src="public/js/app.js"></script>
 	<script type="text/javascript" src="public/js/controllers/reposController.js"></script>
 	<script type="text/javascript" src="public/js/controllers/repoController.js"></script>
 	<script type="text/javascript" src="public/js/controllers/usersController.js"></script>
-	<script type="text/javascript" src="public/js/controllers/groupsController.js"></script>
 	<script type="text/javascript" src="public/js/controllers/eventsController.js"></script>
+	<script type="text/javascript" src="public/js/controllers/permissionController.js"></script>
 </head>
 <body ng-controller="MainCtrl">
 	<div class="ui one column doubling grid container">
@@ -44,14 +44,11 @@
 			<a class="item" href="#/users" ng-show="getUser().IsAdmin()">
 				<i class="user icon"></i> Users
 			</a>
-			<a class="item" href="#/groups" ng-show="getUser().IsAdmin()">
-				<i class="users icon"></i> Groups
-			</a>
 			<a class="ui dropdown item" ng-show="getUser().IsAdmin()" ng-class="{disabled: selectedRepos.length==0}">
 				<i class="code icon"></i> {[{selectedRepos.length}]} Repo.Selected <i class="dropdown icon"></i>
 				<div class="menu">
 					<div class="item" ng-click="moveRepos()">
-						<i class="ui move icon"></i>Move to: /{[{currDir}]}
+						<i class="ui move icon"></i>Move to: /{[{currDir.path}]}
 					</div>
 					<div class="divider"></div>
 					<div class="header">

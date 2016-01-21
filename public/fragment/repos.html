@@ -1,26 +1,32 @@
-<div ng-controller="ReposController">
+<div>
 	<div class="ui bottom attached blue segment" >
-		<a class="item" ng-show="hasParent()" ng-click="upDir()" title="up folder">
-			<i class="up big arrow icon"  />
-		</a>
-		<a class="item" ng-show="getUser().IsAdmin()" title="create folder"  onclick="$('#createFolderPopup').modal('show');">
-			<i class=" big icons">
-				<i class="folder icon"   />
-				<i class="corner green  add icon"   />
-			</i>
-		</a>
-		<a class="item" ng-show="getUser().IsAdmin()" title="create repository" onclick="$('#createRepoPopup').modal('show');">
-			<i class=" big icons" >
-				<i class="code icon"   />
-				<i class="corner green  add icon"   />
-			</i>
-		</a>
-		<a class="item" ng-show="getUser().IsAdmin()" title="Initialize Repository" ng-click="initRepo()">
-			<i class=" big icons" >
-				<i class="code icon"   />
-				<i class="corner blue refresh icon"   />
-			</i>
-		</a>
+		<div class="ui grid">
+			<div class="ten wide column">
+				<a class="clickable" ng-show="hasParent()" ng-click="upDir()" title="up folder">
+					<i class="up big arrow icon"  />
+				</a>
+				<a class="clickable" ng-show="getUser().IsAdmin()" title="create folder"  onclick="$('#createFolderPopup').modal('show');">
+					<i class=" big icons">
+						<i class="folder icon"   />
+						<i class="corner green  add icon"   />
+					</i>
+				</a>
+				<a class="clickable" ng-show="getUser().IsAdmin()" title="create repository" onclick="$('#createRepoPopup').modal('show');">
+					<i class=" big icons" >
+						<i class="code icon"   />
+						<i class="corner green  add icon"   />
+					</i>
+				</a>
+			</div>
+			<div class="six wide column right aligned">
+				<a href="#/permission/folder/{[{currDir.id}]}" class="clickable" ng-show="getUser().IsAdmin() && currDir.id!=0" title="Permissions">
+					<i class=" big icons">
+						<i class="user icon"   />
+						<i class="corner green lock icon"   />
+					</i>
+				</a>
+			</div>
+		</div>
 	</div>
 	<div id="createFolderPopup" class="ui modal">
 		<i class="close icon"></i>
@@ -32,6 +38,10 @@
 				<div class="field">
 					<label>Folder Name:</label>
 					<input type="text" ng-model="newFolderName" />
+				</div>
+				<div class="field">
+					<label>Folder Description:</label>
+					<input type="text" ng-model="newFolderDescription" />
 				</div>
 				<div class="ui icon green button" ng-click="createFolder()">
 					<i class="ui save icon"/>
@@ -63,31 +73,52 @@
 			</form>
 		</div>
 	</div>
-
+	
 	<table class="ui celled table attached ">
 		<thead>
-			<th>Name</th>
-			<th>Description</th>
-			<th class="collapsing">Url</th>
+			<tr>
+				<th colspan="3">
+					Folder: /{[{currDir.path}]}
+				</th>
+			</tr>
+			<tr>
+				<th>Name</th>
+				<th>Description</th>
+				<th class="collapsing">Url</th>
+			</tr>
 		</thead>
-		<tr ng-show="hasParent()">
+		<tr ng-show="currDir.id!=0">
 			<td class="clickable">
-				<a ng-click="upDir()"><i class="ui up arrow icon"/></a>
+				<a ng-click="upFolder()"><i class="ui up arrow icon"/></a>
 			</td>
 			<td>[Parent Folder]</td>
 			<td></td>
 		</tr>
+		<tr ng-repeat="folder in folders">
+			<td>
+				<div style="display:inline;" >
+					<i class="ui orange folder icon" ></i>
+					<span ng-click="openFolder(folder)" class="clickable">
+						{[{folder.name}]}
+					</span>
+				</div>
+			</td>
+			<td>
+				{[{folder.description}]}
+			</td>
+			<td>
+			</td>
+		</tr>
 		<tr ng-repeat="repo in repositories">
 			<td>
 				<div style="display:inline;" >
-					<i class="ui orange folder icon" ng-hide="repo.isRepo"></i>
-					<i class="ui code icon" ng-show="repo.isRepo && !getUser().IsAdmin()"></i>
+					<i class="ui code icon" ng-show="!getUser().IsAdmin()"></i>
 					<i class="ui lock icon" ng-hide="repo.isAuthorized"></i>
-					<a class="item" ng-show="getUser().IsAdmin() &&  repo.isRepo" title="select repository" ng-click="selRepo(repo)" >
+					<a class="item" ng-show="getUser().IsAdmin()" title="select repository" ng-click="selRepo(repo)" >
 						<i class="square  icon"   ng-hide="selRepoContains(repo)"/>
 						<i class="check square icon"   ng-show="selRepoContains(repo)"/>
 					</a>
-					<span ng-click="showRepo(repo.path,repo)" class="clickable">
+					<span ng-click="showRepo(repo)" class="clickable">
 						{[{repo.name}]}
 					</span>
 				</div>
@@ -96,7 +127,7 @@
 				{[{repo.description}]}
 			</td>
 			<td>
-				<div class="ui input small" ng-show="repo.isRepo">
+				<div class="ui input small" >
 					<input type="text" disabled="disabled" ng-model="repo.url"/>
 				</div>
 			</td>
