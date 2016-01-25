@@ -13,6 +13,19 @@ folderService.factory('Folder', ['$http','$q',function ($http,$q) {
 		});
 		return defResponse.promise;
 	};
+	function createFolder(parentId,name,description){
+		var req={
+			'name':name,
+			'description':description
+		}
+		var respDef = $q.defer();
+		$http.put("api/v1/admin/folder/"+parentId+"/mkdir",req).success(function (data){
+			respDef.resolve(data);
+		}).error(function (data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;	
+	};
 	function getFolder(folderId){
 		var respDef = $q.defer();
 		$http.get("api/v1/folder/"+folderId).success(function (data){
@@ -43,10 +56,24 @@ folderService.factory('Folder', ['$http','$q',function ($http,$q) {
 		});
 		return respDef.promise;
 	}
+	function setAdmins(folderId,admins){
+		var respDef = $q.defer();
+		var req={
+			admins:admins
+		};
+		$http.post("api/v1/admin/folder/"+folderId+"/admins",req).success(function (data){
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	}
 	return {
 		'list':list,
+		'createFolder':createFolder,
 		'getFolder':getFolder,
 		'permissions':permissions,
-		'updatePermissions':updatePermissions
+		'updatePermissions':updatePermissions,
+		'setAdmins':setAdmins
 	};
 }]);

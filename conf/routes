@@ -26,10 +26,13 @@ POST	/api/v1/repo/:repoId/files				RepoCtrl.Files
 GET	/api/v1/repo/:repoId/file/:fileRef				RepoCtrl.FileContent
 GET	/api/v1/repo/:repoId/info					RepoCtrl.Info
 
+GET 	/api/v1/user/search 					UserCtrl.Search
+
 ### ADMIN API ###
-PUT	/api/v1/admin/folder/mkdir				AdminFolder.CreateFolder
+PUT	/api/v1/admin/folder/:folderId/mkdir			AdminFolder.CreateFolder
 GET	/api/v1/admin/folder/:folderId/permissions		AdminFolder.Permissions
 POST	/api/v1/admin/folder/:folderId/permissions		AdminFolder.UpdatePermissions
+POST	/api/v1/admin/folder/:folderId/admins			AdminFolder.SetFolderAdmins
 
 
 PUT	/api/v1/admin/repo/create				AdminRepo.CreateRepo
@@ -41,7 +44,7 @@ POST	/api/v1/admin/repo/:repoId/move			AdminRepo.Move
 POST	/api/v1/admin/repo/:repoId/lock				AdminRepo.Lock(true)
 POST	/api/v1/admin/repo/:repoId/unlock			AdminRepo.Lock(false)
 
-GET 	/api/v1/admin/user/search 				AdminUser.Search
+
 GET 	/api/v1/admin/user/ldapSearch				AdminUser.LdapSearch
 GET 	/api/v1/admin/user/list 					AdminUser.List
 POST 	/api/v1/admin/user/save 				AdminUser.Save

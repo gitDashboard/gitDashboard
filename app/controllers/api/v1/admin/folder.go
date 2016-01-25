@@ -12,10 +12,10 @@ import (
 )
 
 type AdminFolder struct {
-	controllers.AdminController
+	controllers.FolderAdminController
 }
 
-func (ctrl *AdminFolder) CreateFolder() revel.Result {
+func (ctrl *AdminFolder) CreateFolder(folderId uint) revel.Result {
 	var req request.CreateFolderRequest
 	var resp response.CreateFolderResponse
 	err := ctrl.GetJSONBody(&req)
@@ -25,16 +25,12 @@ func (ctrl *AdminFolder) CreateFolder() revel.Result {
 
 	//searching parent
 	var parentFolder *models.Folder
-	if req.ParentID > 0 {
-		parentFolder = new(models.Folder)
-		db := ctrl.Tx.First(parentFolder, req.ParentID)
-		if db.Error != nil {
-			controllers.ErrorResp(&resp, basicResponse.DbError, db.Error)
-			return ctrl.RenderJson(resp)
-		}
+	if folderId > 0 {
+		parentFolder = &ctrl.Folder
+
 	}
 	dbFolder := models.Folder{
-		ParentID:    req.ParentID,
+		ParentID:    folderId,
 		Name:        req.Name,
 		Description: req.Description,
 	}
@@ -94,7 +90,7 @@ func (ctrl *AdminFolder) Permissions(folderId uint) revel.Result {
 		repoPerm.Ref = perm.Branch
 		repoPerm.Position = perm.Position
 		repoPerm.Granted = perm.Granted
-		repoPerm.Users = make([]response.User, len(perm.Users), len(perm.Users))
+		repoPerm.Users = make([]basicResponse.User, len(perm.Users), len(perm.Users))
 		for u, user := range perm.Users {
 			repoPerm.Users[u].Username = user.Username
 			repoPerm.Users[u].Type = user.Type
@@ -163,6 +159,41 @@ func (ctrl *AdminFolder) UpdatePermissions(folderId uint) revel.Result {
 		}
 	}
 
+	resp.Success = true
+	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *AdminFolder) SetFolderAdmins(folderId uint) revel.Result {
+	var req request.SetFolderAdminsRequest
+	var resp response.SetFolderAdminsResponse
+	var dbFolder models.Folder
+
+	err := ctrl.GetJSONBody(&req)
+	if err != nil {
+		revel.ERROR.Println(err.Error())
+		return ctrl.RenderError(err)
+	}
+
+	db := ctrl.Tx.First(&dbFolder, folderId)
+	if db.Error != nil {
+		controllers.ErrorResp(&resp, basicResponse.DbError, db.Error)
+		return ctrl.RenderJson(resp)
+	}
+	if len(req.Admins) > 0 {
+		adminIds := make([]uint, len(req.Admins), len(req.Admins))
+		for u, admin := range req.Admins {
+			adminIds[u] = admin.ID
+		}
+		var newAdmins []models.User
+		db = ctrl.Tx.Find(&newAdmins, "id in (?)", adminIds)
+		if db.Error != nil {
+			controllers.ErrorResp(&resp, basicResponse.DbError, db.Error)
+			return ctrl.RenderJson(resp)
+		}
+		ctrl.Tx.Model(&dbFolder).Association("Admins").Replace(newAdmins)
+	} else {
+		ctrl.Tx.Model(&dbFolder).Association("Admins").Clear()
+	}
 	resp.Success = true
 	return ctrl.RenderJson(resp)
 }

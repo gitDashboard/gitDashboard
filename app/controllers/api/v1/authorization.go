@@ -30,7 +30,7 @@ func checkFolderAuthorization(db *gorm.DB, folderId, userID uint, operation, ref
 	}
 	var authorized bool
 	var perms []models.Permission
-	db.Order("position").Where("folder_id = ? and user_id = ? and type like ?", folderId, userID, "%"+operation+"%").Find(&perms)
+	db.Joins("inner join users_permissions on users_permissions.permission_id = permissions.id").Order("position").Where("folder_id = ? and users_permissions.user_id = ? and type like ?", folderId, userID, "%"+operation+"%").Find(&perms)
 
 	oneMatch := false
 	for _, perm := range perms {
@@ -73,7 +73,7 @@ func CheckAutorization(db *gorm.DB, repoDir, username, operation, refName string
 	}
 	//finding permissions
 	var perms []models.Permission
-	db.Order("position").Where("repo_id = ? and user_id = ? and type like ?", repo.ID, user.ID, "%"+operation+"%").Find(&perms)
+	db.Joins("inner join users_permissions on users_permissions.permission_id = permissions.id").Order("position").Where("repo_id = ? and users_permissions.user_id = ? and type like ?", repo.ID, user.ID, "%"+operation+"%").Find(&perms)
 	authorized := false
 	oneMatch := false
 	if len(perms) > 0 {
@@ -132,7 +132,7 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 	ctrl.GetJSONBody(&loginReq)
 	revel.INFO.Printf("Login req:%+v\n", loginReq)
 	var dbUser models.User
-	ctrl.Tx.Preload("Groups").Where("username = ? and type = ?", loginReq.Username, loginReq.Type).First(&dbUser)
+	ctrl.Tx.Where("username = ? and type = ?", loginReq.Username, loginReq.Type).First(&dbUser)
 
 	if dbUser.ID == 0 {
 		//no user found
@@ -147,6 +147,7 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 		loginResp.Error = response.AuthenticationFailedError
 	} else {
 		var jwtUser misc.JWTUser
+		jwtUser.ID = dbUser.ID
 		jwtUser.Username = loginReq.Username
 		jwtUser.Name = dbUser.Name
 		jwtUser.Email = dbUser.Email.String

@@ -37,24 +37,24 @@
 				<i class="up big arrow icon"  />
 			</a>
 
-			<a class="clickable" ng-show="getUser().IsAdmin()" title="Select" ng-click="selRepo(repo)" >
+			<a class="clickable" ng-show="isFolderAdmin()" title="Select" ng-click="selRepo(repo)" >
 				<i class="square big icon"   ng-hide="selRepoContains(repo)"/>
 				<i class="check square big icon"   ng-show="selRepoContains(repo)"/>
 			</a>
-			<a class="clickable" ng-show="getUser().IsAdmin()" title="Lock/Unlock" ng-click="lockRepo(repo)" >
+			<a class="clickable" ng-show="isFolderAdmin()" title="Lock/Unlock" ng-click="lockRepo(repo)" >
 				<i class="lock  big icon"  ng-show="repo.locked" />
 				<i class="unlock big icon"  ng-hide="repo.locked" />
 			</a>
 
 		</div>
 		<div class="six wide column right aligned">
-			<a href="#/permission/repo/{[{repo.id}]}" class="clickable" ng-show="getUser().IsAdmin()" title="Permissions">
+			<a href="#/permission/repo/{[{repo.id}]}" class="clickable" ng-show="isFolderAdmin()" title="Permissions">
 				<i class=" big icons">
 					<i class="user icon"   />
 					<i class="corner green lock icon"   />
 				</i>
 			</a>
-			<a class="clickable" ng-show="getUser().IsAdmin()" title="EventLog" ng-click="currView='public/fragment/repo/events.html'" >
+			<a class="clickable" ng-show="isFolderAdmin()" title="EventLog" ng-click="currView='public/fragment/repo/events.html'" >
 				<i class=" big icons">
 					<i class="file text  icon"   />
 					<i class="corner blue clock icon"   />
@@ -64,9 +64,9 @@
 	</div>
 	
 	<div class="ui  top attached segment ">
-		<b>Path:</b>{[{repo.path}]} <i ng-show="getUser().IsAdmin()" class="ui edit link icon"  onclick="$('#renamePopup').modal('show')"/><br/>
+		<b>Path:</b>{[{repo.path}]} <i ng-show="isFolderAdmin()" class="ui edit link icon"  onclick="$('#renamePopup').modal('show')"/><br/>
 		<b>Url:</b>{[{repo.url}]}<br/>
-		<b>Description:</b>{[{repo.description}]}<i ng-show="getUser().IsAdmin()" class="ui edit link icon"  onclick="$('#descriptionPopup').modal('show')"/><br/>
+		<b>Description:</b>{[{repo.description}]}<i ng-show="isFolderAdmin()" class="ui edit link icon"  onclick="$('#descriptionPopup').modal('show')"/><br/>
 	</div>
 	<div ng-include="currView"></div>
 	<div class="ui  segment attached" ng-hide="currView!=null">

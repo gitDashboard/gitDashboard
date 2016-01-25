@@ -48,6 +48,11 @@ gitDashboard.config(['$routeProvider', '$locationProvider',function ($routeProvi
 		controller:"UsersController",
 		controllerAs:"users"
 	}).
+	when('/folder/admins/:folderId',{
+		templateUrl:"public/fragment/folderAdmins.html",
+		controller:"FolderController",
+		controllerAs:"folder"
+	}).
 	when('/permission/folder/:folderId',{
 		templateUrl:"public/fragment/permission.html",
 		controller:"PermissionController",
@@ -148,6 +153,24 @@ gitDashboard.controller('MainCtrl', ['$scope','localStorageService','jwtHelper',
 			$scope.currDir={id:0};
 		}
 	}
+
+	$scope.isFolderAdmin=function(){
+		var user = $scope.getUser();
+		if (user.Admin){
+			return true;
+		}
+		if ($scope.currDir.id==0){
+			return false;
+		}
+		var admin = false;
+		if ($scope.currDir!=null && $scope.currDir.extAdmins!=null){
+			for (var a =0; a<$scope.currDir.extAdmins.length && !admin; a++){
+				admin = $scope.currDir.extAdmins[a].id==user.ID;
+			}
+		}
+		return admin;
+	}
+
 	$scope.moveRepos=function(){
 		var repoToMove = $scope.selectedRepos.slice()
 		$scope.currentAction = "moving";
@@ -204,10 +227,6 @@ gitDashboard.controller('SelUserController',['$scope','User','$location',functio
 				$location.path("login");
 			}
 		});
-	}
-	$scope.selectUser=function(user){
-		$scope.currPerm.users.push(user);
-		$('#searchUserPopup').modal('hide');
 	}
 }]);
 

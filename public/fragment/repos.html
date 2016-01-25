@@ -5,13 +5,13 @@
 				<a class="clickable" ng-show="hasParent()" ng-click="upDir()" title="up folder">
 					<i class="up big arrow icon"  />
 				</a>
-				<a class="clickable" ng-show="getUser().IsAdmin()" title="create folder"  onclick="$('#createFolderPopup').modal('show');">
+				<a class="clickable" ng-show="isFolderAdmin()" title="create folder"  onclick="$('#createFolderPopup').modal('show');">
 					<i class=" big icons">
 						<i class="folder icon"   />
 						<i class="corner green  add icon"   />
 					</i>
 				</a>
-				<a class="clickable" ng-show="getUser().IsAdmin()" title="create repository" onclick="$('#createRepoPopup').modal('show');">
+				<a class="clickable" ng-show="isFolderAdmin()" title="create repository" onclick="$('#createRepoPopup').modal('show');">
 					<i class=" big icons" >
 						<i class="code icon"   />
 						<i class="corner green  add icon"   />
@@ -19,7 +19,10 @@
 				</a>
 			</div>
 			<div class="six wide column right aligned">
-				<a href="#/permission/folder/{[{currDir.id}]}" class="clickable" ng-show="getUser().IsAdmin() && currDir.id!=0" title="Permissions">
+				<a href="#/folder/admins/{[{currDir.id}]}" class="clickable" ng-show="getUser().IsAdmin() && currDir.id!=0" title="Admins">
+					<i class="spy big icon"   />					
+				</a>
+				<a href="#/permission/folder/{[{currDir.id}]}" class="clickable" ng-show="isFolderAdmin() && currDir.id!=0" title="Permissions">
 					<i class=" big icons">
 						<i class="user icon"   />
 						<i class="corner green lock icon"   />
@@ -112,9 +115,9 @@
 		<tr ng-repeat="repo in repositories">
 			<td>
 				<div style="display:inline;" >
-					<i class="ui code icon" ng-show="!getUser().IsAdmin()"></i>
+					<i class="ui code icon" ng-show="!isFolderAdmin()"></i>
 					<i class="ui lock icon" ng-hide="repo.isAuthorized"></i>
-					<a class="item" ng-show="getUser().IsAdmin()" title="select repository" ng-click="selRepo(repo)" >
+					<a class="item" ng-show="isFolderAdmin()" title="select repository" ng-click="selRepo(repo)" >
 						<i class="square  icon"   ng-hide="selRepoContains(repo)"/>
 						<i class="check square icon"   ng-show="selRepoContains(repo)"/>
 					</a>

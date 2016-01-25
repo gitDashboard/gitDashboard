@@ -12,7 +12,7 @@ import (
 )
 
 type AdminEvent struct {
-	controllers.AdminController
+	controllers.FolderAdminController
 }
 
 func (ctrl *AdminEvent) Search() revel.Result {

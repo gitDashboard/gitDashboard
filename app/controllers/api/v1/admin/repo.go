@@ -16,7 +16,7 @@ import (
 )
 
 type AdminRepo struct {
-	controllers.AdminController
+	controllers.FolderAdminController
 }
 
 func ConfigRepo(repo *git.Repository) error {
@@ -158,8 +158,9 @@ func (ctrl *AdminRepo) Permissions(repoId uint) revel.Result {
 		repoPerm.Ref = perm.Branch
 		repoPerm.Position = perm.Position
 		repoPerm.Granted = perm.Granted
-		repoPerm.Users = make([]response.User, len(perm.Users), len(perm.Users))
+		repoPerm.Users = make([]basicResponse.User, len(perm.Users), len(perm.Users))
 		for u, user := range perm.Users {
+			repoPerm.Users[u].ID = user.ID
 			repoPerm.Users[u].Username = user.Username
 			repoPerm.Users[u].Type = user.Type
 			repoPerm.Users[u].Name = user.Name

@@ -18,7 +18,7 @@ type GormController struct {
 
 func InitDB() {
 	var err error
-	Db, err = gorm.Open("postgres", "user=igor password=infocam dbname=gitdashboard sslmode=disable")
+	Db, err = gorm.Open("postgres", "user=igor password=igor dbname=gitdashboard sslmode=disable")
 	if err != nil {
 		revel.ERROR.Println("FATAL", err)
 		panic(err)

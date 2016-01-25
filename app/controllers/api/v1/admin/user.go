@@ -14,29 +14,6 @@ type AdminUser struct {
 	controllers.AdminController
 }
 
-func (ctrl *AdminUser) Search() revel.Result {
-	var resp response.UsersResponse
-	var query string
-	ctrl.Params.Bind(&query, "query")
-	revel.INFO.Println("Searching user query:", query)
-	var dbUsers []models.User
-	db := ctrl.Tx.Where("username LIKE ?", "%"+query+"%").Find(&dbUsers)
-	if len(db.GetErrors()) > 0 {
-		resp.Success = false
-		resp.Error = basicResponse.FatalError
-		for _, err := range db.GetErrors() {
-			resp.Error.Message = resp.Error.Message + err.Error() + " "
-		}
-		return ctrl.RenderJson(resp)
-	}
-	resp.Users = make([]response.User, len(dbUsers), len(dbUsers))
-	for i, dbUser := range dbUsers {
-		resp.Users[i] = response.User{ID: dbUser.ID, Username: dbUser.Username, Name: dbUser.Name, Type: dbUser.Type, Admin: dbUser.Admin}
-	}
-	resp.Success = true
-	return ctrl.RenderJson(resp)
-}
-
 func (ctrl *AdminUser) LdapSearch() revel.Result {
 	var username string
 	ctrl.Params.Bind(&username, "username")
@@ -48,12 +25,12 @@ func (ctrl *AdminUser) LdapSearch() revel.Result {
 }
 
 func (ctrl *AdminUser) List() revel.Result {
-	var resp response.UsersResponse
+	var resp basicResponse.UsersResponse
 	var dbUsers []models.User
 	ctrl.Tx.Find(&dbUsers)
-	resp.Users = make([]response.User, len(dbUsers), len(dbUsers))
+	resp.Users = make([]basicResponse.User, len(dbUsers), len(dbUsers))
 	for i, dbUser := range dbUsers {
-		resp.Users[i] = response.User{ID: dbUser.ID,
+		resp.Users[i] = basicResponse.User{ID: dbUser.ID,
 			Username: dbUser.Username,
 			Type:     dbUser.Type,
 			Name:     dbUser.Name,
@@ -67,7 +44,7 @@ func (ctrl *AdminUser) List() revel.Result {
 
 func (ctrl *AdminUser) Save() revel.Result {
 	var resp response.UserUpdateResponse
-	var req response.User
+	var req basicResponse.User
 	err := ctrl.GetJSONBody(&req)
 	if err != nil {
 		revel.ERROR.Println(err.Error())

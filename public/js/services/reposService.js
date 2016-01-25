@@ -72,23 +72,6 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;	
 	}
 
-	function createFolder(parentId,name,description){
-		var req={
-			'parentId':parentId,
-			'name':name,
-			'description':description
-		}
-		var respDef = $q.defer();
-		$http.put("api/v1/admin/folder/mkdir",req).success(function (data){
-			respDef.resolve(data);
-		}).error(function (data,status){
-			respDef.reject({"error":data,"status":status} );
-		});
-		return respDef.promise;	
-	}
-
-	
-
 	function createRepo(folderId,name,description){
 		var req={
 			'folderId':folderId,
@@ -96,7 +79,7 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 			'description':description
 		}
 		var respDef = $q.defer();
-		$http.put("api/v1/admin/repo/create",req).success(function (data){
+		$http.put("api/v1/admin/repo/create?folderId="+folderId,req).success(function (data){
 			respDef.resolve(data);
 		}).error(function (data,status){
 			respDef.reject({"error":data,"status":status} );
@@ -200,7 +183,6 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		"info":info,
 		"files":files,
 		"fileContent":fileContent,
-		'createFolder':createFolder,
 		'createRepo':createRepo,
 		'initRepo':initRepo,
 		'permissions':permissions,

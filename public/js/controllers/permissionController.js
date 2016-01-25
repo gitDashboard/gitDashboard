@@ -23,9 +23,14 @@ gitDashboard.controller('PermissionController',['$scope','$location','Repo','Fol
 			}
 		});
 	}
-	$scope.selUser=function(permission){
+	$scope.openSelUser=function(permission){
 		$scope.currPerm=permission;
 		$('#searchUserPopup').modal('show');		
+	}
+
+	$scope.selectUser=function(user){
+		$scope.currPerm.users.push(user);
+		$('#searchUserPopup').modal('hide');
 	}
 
 	$scope.getPermissions=function(){

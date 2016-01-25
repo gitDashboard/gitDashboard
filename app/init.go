@@ -33,6 +33,7 @@ func init() {
 	revel.InterceptMethod((*controllers.GormController).Rollback, revel.FINALLY)
 
 	revel.InterceptMethod((*controllers.JWTController).ParseToken, revel.BEFORE)
+	revel.InterceptMethod((*controllers.FolderAdminController).CheckPermission, revel.BEFORE)
 	revel.InterceptMethod((*controllers.AdminController).CheckPermission, revel.BEFORE)
 }
 

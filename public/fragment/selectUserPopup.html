@@ -1,0 +1,42 @@
+<div class="ui modal" id="searchUserPopup" ng-controller="SelUserController">
+	<i class="ui close icon"/>
+	<div class="header">
+		Search User
+	</div>
+	<div class="content">
+		<form class="ui form">
+			<div class="field">
+				<label>Username</label>
+				<input type="text" ng-model="username"/>
+			</div>
+			<div class="ui icon button" ng-click="search()"><i class="search  blue icon"/>Search</div>
+		</form>
+		<table class="ui celled table">
+			<thead>
+				<tr>
+					<th>Username</th>
+					<th>Name</th>
+					<th>Type</th>
+					<th>Sel</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="user in foundedUsers">
+					<td>
+						{[{user.username}]}
+					</td>
+					<td>
+						{[{user.name}]}
+					</td>
+					<td>
+						{[{user.type}]}
+					</td>
+					<td>
+						<div class="ui button" ng-click="selectUser(user)">Sel</div>
+					</td>
+				</tr>
+			</tbody>
+			
+		</table>
+	</div>
+</div>

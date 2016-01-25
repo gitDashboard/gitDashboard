@@ -27,7 +27,6 @@ func Login(username, password string) error {
 		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())
 		return err
 	}
-	defer ldapConn.Close()
 
 	baseDn, found := revel.Config.String("ldap.baseDn")
 	if !found {
@@ -43,6 +42,7 @@ func Login(username, password string) error {
 		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())
 		return err
 	}
+	defer ldapConn.Close()
 	//retrieve user information
 
 	revel.INFO.Printf("LDAP BaseDn:%s\n", baseDn)

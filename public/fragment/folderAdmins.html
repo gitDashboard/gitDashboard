@@ -1,0 +1,41 @@
+<ng-include src="'public/fragment/selectUserPopup.html'"></ng-include>
+<div class="ui attached segment" ng-init="getPermissions()">
+	<h2 class="header">
+		Manage  Folder Admins
+	</h2>
+	<h3 class="header">
+		Path: /{[{folder.path}]} ({[{folder.description}]})
+	</h3>
+	<div class="content">
+		<table class="ui celled table">
+			<thead>
+				<tr>
+					<th>Username</th>
+					<th>Name</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+			<tr  ng-repeat="user in folder.admins">
+					<td>
+						{[{user.username}]}
+					</td>
+					<td>
+						{[{user.name}]}
+					</td>
+					<td>
+						<i class="ui clickable trash red icon" ng-click="removeUser($index)"/>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<div class="ui icon button" onclick="$('#searchUserPopup').modal('show');">
+			<i class="ui user icon"></i>
+			Add Admin
+		</div>
+		<div class="ui icon green button" ng-click="saveAdmins()">
+			<i class="ui save icon"></i>
+			Save
+		</div>
+	</div>
+</div>

@@ -6,6 +6,7 @@ type Folder struct {
 	Name         string `sql:"not null"`
 	Path         string `sql:"not null"`
 	Description  string
+	Admins       []User `gorm:"many2many:admins_folders;"`
 	Repositories []Repo
 	Permissions  []Permission
 }

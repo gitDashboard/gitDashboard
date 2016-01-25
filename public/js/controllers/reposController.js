@@ -15,7 +15,7 @@ gitDashboard.controller('ReposController',['$scope','$location','Repo','Folder',
 
 	$scope.createFolder=function(){
 		if($scope.newFolderName!=null && $scope.newFolderName!=""){
-			Repo.createFolder($scope.currDir.id,$scope.newFolderName,$scope.newFolderDescription).then(function(data){
+			Folder.createFolder($scope.currDir.id,$scope.newFolderName,$scope.newFolderDescription).then(function(data){
 				if (data.success){
 					$('#createFolderPopup').modal('hide');
 					$scope.newFolderName=null;
