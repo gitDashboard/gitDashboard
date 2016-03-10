@@ -512,5 +512,6 @@ func (ctrl *RepoCtrl) Graph(repoId uint) revel.Result {
 	if err != nil {
 		return ctrl.RenderError(err)
 	}
+	revel.INFO.Println(jsGraph)
 	return ctrl.RenderText(jsGraph)
 }

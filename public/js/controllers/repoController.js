@@ -11,10 +11,11 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 				Repo.graph($scope.repo.id).then(function(data){
 					var graphFun = new Function(data);
 					var stage = new createjs.Stage("graphCanvas");
+					stage.scope=$scope;
 					stage.enableMouseOver(10);
 					var Graph = graphFun();
-					$('#graphCanvas').attr('width',Graph.getWidth()+10);
-					$('#graphCanvas').attr('height',Graph.getHeight()+10);
+					$('#graphCanvas').attr('width',Graph.getWidth()+500);
+					$('#graphCanvas').attr('height',Graph.getHeight()+80);
 					Graph.drawGraph(stage);
 					stage.update();
 				},function(error){
@@ -209,8 +210,8 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 		});
 	}
 
-	$scope.selCommit=function(commit){
-		$scope.getCommit(commit.id)
+	$scope.selCommit=function(commitId){
+		$scope.getCommit(commitId)
 		$scope.setCurrView('public/fragment/repo/commit.html');
 	}
 

@@ -115,7 +115,7 @@
 					<div  class="four wide column" ><b>Author</b></div>
 					<div  class="nine wide column" ><b>Message</b></div>
 				</div>
-				<div class="row clickable" style="border-bottom:1px solid #CCCCCC;" ng-repeat="commit in commits" ng-click="selCommit(commit)">
+				<div class="row clickable" style="border-bottom:1px solid #CCCCCC;" ng-repeat="commit in commits" ng-click="selCommit(commit.id)">
 					<div  class="three wide column middle aligned" >{[{commit.date | date:'medium'}]}</div>
 					<div  class="four wide column" >
 						<div class="ui grid">
@@ -186,8 +186,24 @@
 			</div>	
 		</div>
 
-		<div class="ui bottom attached  tab segment" data-tab="graph" style="overflow: auto;">
-			<canvas id="graphCanvas"></canvas>
+		<div class="ui bottom attached  tab segment"  data-tab="graph" >
+			<div class="ui container center aligned" style="margin-bottom: 5px;">
+				<div class="ui icon button" onclick="graphBegin();">
+					<i class="fast backward icon"></i>
+				</div>
+				<div class="ui icon button" onclick="graphBackward();">
+					<i class=" backward icon"></i>
+				</div>
+				<div class="ui icon button" onclick="graphForward();">
+					<i class="forward icon"></i>
+				</div>
+				<div class="ui icon button" onclick="graphEnd();">
+					<i class="fast forward icon"></i>
+				</div>
+			</div>
+			<div id="graphTab" style="overflow: auto;">
+				<canvas id="graphCanvas"></canvas>
+			</div>
 			<script type="text/javascript" src="public/js/graph.js"></script>
 		</div>
 		<script type="text/javascript">
