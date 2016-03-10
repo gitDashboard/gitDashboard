@@ -174,7 +174,15 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		return respDef.promise;
 	}
 
-	
+	function graph(repoId){
+		var respDef = $q.defer();
+		$http.get("api/v1/repo/"+repoId+"/graph").success(function (data){
+			respDef.resolve(data);
+		}).error(function(data,status){
+			respDef.reject({"error":data,"status":status} );
+		});
+		return respDef.promise;
+	}
 
 	return {
 		"list":list,
@@ -189,6 +197,7 @@ reposService.factory('Repo', ['$q','$http',function ($q,$http) {
 		'updatePermissions':updatePermissions,
 		'updateDescription':updateDescription,
 		'moveRepo':moveRepo,
-		'lock':lockRepo
+		'lock':lockRepo,
+		'graph':graph
 	};
 }]);

@@ -7,6 +7,22 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 			if (data.success){
 				console.log(data);
 				$scope.repo = data.info;
+				//graph
+				Repo.graph($scope.repo.id).then(function(data){
+					var graphFun = new Function(data);
+					var stage = new createjs.Stage("graphCanvas");
+					stage.enableMouseOver(10);
+					var Graph = graphFun();
+					$('#graphCanvas').attr('width',Graph.getWidth()+10);
+					$('#graphCanvas').attr('height',Graph.getHeight()+10);
+					Graph.drawGraph(stage);
+					stage.update();
+				},function(error){
+					console.log(error);
+					if (error.status==401){
+						$location.path("login");
+					}
+				});
 			}else{
 				console.log(data.error);
 				alert(data.error.message);
@@ -235,4 +251,6 @@ gitDashboard.controller('RepoController',['$scope','$routeParams','Repo','$locat
 	$scope.currRef="refs/heads/master";	
 	$scope.getCommits();
 	$scope.getFiles(null);
+	
+
 }]);	

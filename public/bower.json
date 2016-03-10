@@ -25,6 +25,7 @@
     "angular-gravatar": "~0.4.1",
     "angular-ui": "~0.4.0",
     "angular-bcrypt": "~1.0.0",
-    "datetimepicker": "~2.4.5"
+    "datetimepicker": "~2.4.5",
+    "EaselJS": "easeljs#^0.8.2"
   }
 }

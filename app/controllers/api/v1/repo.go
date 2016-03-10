@@ -2,7 +2,9 @@ package v1
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"github.com/gitDashboard/client"
 	"github.com/gitDashboard/client/v1/request"
 	"github.com/gitDashboard/client/v1/response"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
@@ -489,4 +491,26 @@ func (ctrl *RepoCtrl) Commit(repoId uint, commitId string) revel.Result {
 		}
 	}
 	return ctrl.RenderJson(resp)
+}
+
+func (ctrl *RepoCtrl) Graph(repoId uint) revel.Result {
+	var dbRepo models.Repo
+	revel.INFO.Printf("Graph repoId:%d\n", repoId)
+	query := ctrl.Tx.First(&dbRepo, repoId)
+	if query.Error != nil {
+		return ctrl.RenderError(query.Error)
+	}
+	//checking permission
+	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	if err != nil {
+		return ctrl.RenderError(err)
+	}
+	if !authorized {
+		return ctrl.RenderError(errors.New("401: Not authorized"))
+	}
+	jsGraph, err := client.GenerateGraph(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
+	if err != nil {
+		return ctrl.RenderError(err)
+	}
+	return ctrl.RenderText(jsGraph)
 }

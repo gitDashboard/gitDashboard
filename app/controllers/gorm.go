@@ -3,10 +3,12 @@ package controllers
 import (
 	"database/sql"
 	"github.com/gitDashboard/gitDashboard/app/models"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/revel/revel"
 	"golang.org/x/crypto/bcrypt"
+	"os"
 )
 
 var Db gorm.DB
@@ -16,9 +18,27 @@ type GormController struct {
 	Tx *gorm.DB
 }
 
+func getDbReferences() (string, string) {
+	var dbType, dbConnection string
+	dbType, dbTypeFounded := revel.Config.String("db.type")
+	dbConnection, dbConnectionFounded := revel.Config.String("db.connection")
+	if !dbTypeFounded || !dbConnectionFounded {
+		revel.WARN.Println("no settings found for database connection on revel configuration, searching on system environment (GITDASHBOARD_DBTYPE,GITDASHBOARD_DBCONNECTION)")
+		//search on environment
+		dbType = os.Getenv("GITDASHBOARD_DBTYPE")
+		dbConnection = os.Getenv("GITDASHBOARD_DBCONNECTION")
+	}
+	if dbType == "" || dbConnection == "" {
+		revel.ERROR.Println("No Database connection found")
+		panic("No database connection found")
+	}
+	return dbType, dbConnection
+}
+
 func InitDB() {
 	var err error
-	Db, err = gorm.Open("postgres", "user=igor password=igor dbname=gitdashboard sslmode=disable")
+	dbtype, dbConnection := getDbReferences()
+	Db, err = gorm.Open(dbtype, dbConnection)
 	if err != nil {
 		revel.ERROR.Println("FATAL", err)
 		panic(err)
