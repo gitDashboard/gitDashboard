@@ -1,13 +1,13 @@
-package v1
+package controllers
 
 import (
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/structs"
 	"github.com/gitDashboard/client/v1/misc"
 	"github.com/gitDashboard/client/v1/request"
 	"github.com/gitDashboard/client/v1/response"
 	"github.com/gitDashboard/gitDashboard/app/auth"
-	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/gitDashboard/gitDashboard/app/repoManager"
 	"github.com/jinzhu/gorm"
@@ -18,7 +18,7 @@ import (
 )
 
 type AuthorizationCtrl struct {
-	controllers.GormController
+	GormController
 }
 
 func checkFolderAuthorization(db *gorm.DB, folderId, userID uint, operation, refName string) bool {
@@ -126,23 +126,29 @@ func checkUserPassword(dbUser *models.User, password, userType string) error {
 	}
 }
 
+func Login(db *gorm.DB, username, password string) (*models.User, error) {
+	var dbUser models.User
+	db.Where("username = ?", username).First(&dbUser)
+	if dbUser.ID == 0 {
+		return nil, nil
+	}
+	return &dbUser, checkUserPassword(&dbUser, password, dbUser.Type)
+}
+
 func (ctrl *AuthorizationCtrl) Login() revel.Result {
 	var loginReq request.LoginRequest
 	var loginResp response.LoginResponse
 	ctrl.GetJSONBody(&loginReq)
 	revel.INFO.Printf("Login req:%+v\n", loginReq)
-	var dbUser models.User
-	ctrl.Tx.Where("username = ? and type = ?", loginReq.Username, loginReq.Type).First(&dbUser)
-
-	if dbUser.ID == 0 {
+	dbUser, loginErr := Login(ctrl.Tx, loginReq.Username, loginReq.Password)
+	if dbUser == nil {
 		//no user found
 		loginResp.Success = false
 		loginResp.Error = response.NoUserFoundError
 		return ctrl.RenderJson(loginResp)
 	}
-	pwdErr := checkUserPassword(&dbUser, loginReq.Password, loginReq.Type)
-	if pwdErr != nil {
-		revel.ERROR.Println(pwdErr.Error())
+	if loginErr != nil {
+		revel.ERROR.Println(loginErr.Error())
 		loginResp.Success = false
 		loginResp.Error = response.AuthenticationFailedError
 	} else {
@@ -171,44 +177,52 @@ func (ctrl *AuthorizationCtrl) Login() revel.Result {
 	return ctrl.RenderJson(loginResp)
 }
 
+func StartEvent(db *gorm.DB, repoPath, eventType, username, reference, description string, level misc.EventLevel, finished bool) (uint, error) {
+	repo, err := repoManager.GetRepo(db, repoPath)
+	if err != nil {
+		return 0, err
+	}
+	if repo.ID <= 0 {
+		return 0, errors.New("No Repository found")
+	}
+	var event *models.Event
+	if !finished {
+		event, err = repoManager.StartRepoEvent(db, repo.ID, eventType, username, reference, description, level)
+	} else {
+		event, err = repoManager.AddRepoEvent(db, repo.ID, eventType, username, reference, description, level)
+	}
+	return event.ID, err
+}
+
 func (ctrl *AuthorizationCtrl) StartEvent(finished bool) revel.Result {
 	var resp response.RepoEventResponse
 	var req request.RepoEventRequest
 	err := ctrl.GetJSONBody(&req)
 	if err != nil {
-		controllers.ErrorResp(&resp, response.FatalError, err)
+		ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := repoManager.GetRepo(ctrl.Tx, req.RepositoryPath)
+	eventID, err := StartEvent(ctrl.Tx, req.RepositoryPath, req.Type, req.User, req.Reference, req.Description, req.Level, finished)
 	if err != nil {
-		controllers.ErrorResp(&resp, response.FatalError, err)
+		ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
-	if repo.ID <= 0 {
-		controllers.ErrorResp(&resp, response.NoRepositoryFoundError, err)
-		return ctrl.RenderJson(resp)
-	}
-	var event *models.Event
-	if !finished {
-		event, err = repoManager.StartRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Reference, req.Description, req.Level)
-	} else {
-		event, err = repoManager.AddRepoEvent(ctrl.Tx, repo.ID, req.Type, req.User, req.Reference, req.Description, req.Level)
-	}
-	if err != nil {
-		controllers.ErrorResp(&resp, response.FatalError, err)
-		return ctrl.RenderJson(resp)
-	}
+
 	resp.Success = true
-	resp.EventID = event.ID
+	resp.EventID = eventID
 	return ctrl.RenderJson(resp)
+}
+
+func FinishEvent(db *gorm.DB, eventId uint) error {
+	return repoManager.FinishRepoEvent(db, eventId)
 }
 
 func (ctrl *AuthorizationCtrl) FinishEvent(eventId uint) revel.Result {
 	var resp response.BasicResponse
 
-	err := repoManager.FinishRepoEvent(ctrl.Tx, eventId)
+	err := FinishEvent(ctrl.Tx, eventId)
 	if err != nil {
-		controllers.ErrorResp(&resp, response.FatalError, err)
+		ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
 	}
 	resp.Success = true

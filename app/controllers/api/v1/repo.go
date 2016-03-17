@@ -46,7 +46,7 @@ func (ctrl *RepoCtrl) List(parentFolder uint) revel.Result {
 		readRepoDescription(controllers.CleanSlashes(controllers.GitBasePath()+"/"+repo.Path), &repoInfo)
 		repoInfo.Path = repo.Path
 		repoInfo.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(repoInfo.Path)
-		repoInfo.IsAuthorized, repoInfo.Locked, _ = CheckAutorization(ctrl.Tx, repo.Path, ctrl.User.Username, "read", "/")
+		repoInfo.IsAuthorized, repoInfo.Locked, _ = controllers.CheckAutorization(ctrl.Tx, repo.Path, ctrl.User.Username, "read", "/")
 		resp.Repositories[i] = repoInfo
 	}
 	return ctrl.RenderJson(resp)
@@ -70,7 +70,7 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 		return ctrl.RenderJson(resp)
 	}
 	//checking permission
-	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	authorized, _, err := controllers.CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
 		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
@@ -141,7 +141,7 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 		return ctrl.RenderJson(resp)
 	}
 	//checking permission
-	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	authorized, _, err := controllers.CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
 		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
@@ -218,7 +218,7 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 		return ctrl.RenderJson(resp)
 	}
 	//checking permission
-	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	authorized, _, err := controllers.CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -301,7 +301,7 @@ func (ctrl *RepoCtrl) FileContent(repoId int, fileRef string) revel.Result {
 		return ctrl.RenderJson(resp)
 	}
 	//checking permission
-	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	authorized, _, err := controllers.CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -386,7 +386,7 @@ func (ctrl *RepoCtrl) Commit(repoId uint, commitId string) revel.Result {
 		}
 	}
 	//checking permission
-	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	authorized, _, err := controllers.CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -501,7 +501,7 @@ func (ctrl *RepoCtrl) Graph(repoId uint) revel.Result {
 		return ctrl.RenderError(query.Error)
 	}
 	//checking permission
-	authorized, _, err := CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
+	authorized, _, err := controllers.CheckAutorization(ctrl.Tx, dbRepo.Path, ctrl.User.Username, "read", "")
 	if err != nil {
 		return ctrl.RenderError(err)
 	}
