@@ -14,7 +14,11 @@ func GitBasePath() string {
 	if gitBasePath == "" {
 		gitBasePath = os.Getenv("GIT_PROJECT_ROOT")
 		if gitBasePath == "" {
-			return revel.Config.StringDefault("git.baseDir", "/")
+			var found bool
+			gitBasePath, found = revel.Config.String("git.baseDir")
+			if !found {
+				panic("Cannot find git base path, please set git.baseDir in app.conf or system variable GIT_PROJECT_ROOT")
+			}
 		}
 	}
 	return gitBasePath

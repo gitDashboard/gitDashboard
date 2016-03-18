@@ -76,7 +76,7 @@ func Search(username string) (map[string]string, error) {
 	}
 	defer ldapConn.Close()
 
-	baseDn, found := revel.Config.String("ldap.baseDn")
+	baseDn, found := config.LdapBaseDn()
 	if !found {
 		err = errors.New("LDAP Configuration \"ldap.baseDn\" not found")
 		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())

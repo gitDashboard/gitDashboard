@@ -5,13 +5,14 @@ import (
 	"github.com/gitDashboard/gitDashboard/app/models"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	_ "github.com/lib/pq"
 	"github.com/revel/revel"
 	"golang.org/x/crypto/bcrypt"
 	"os"
 )
 
-var Db gorm.DB
+var Db *gorm.DB
 
 type GormController struct {
 	BasicController
