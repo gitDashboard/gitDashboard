@@ -4,6 +4,7 @@ import (
 	"github.com/gitDashboard/client/v1/admin/request"
 	"github.com/gitDashboard/client/v1/admin/response"
 	basicResponse "github.com/gitDashboard/client/v1/response"
+	"github.com/gitDashboard/gitDashboard/app/config"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/revel/revel"
@@ -37,10 +38,10 @@ func (ctrl *AdminFolder) CreateFolder(folderId uint) revel.Result {
 	var fullPath string
 	if parentFolder != nil {
 		dbFolder.Path = parentFolder.Path + "/" + req.Name
-		fullPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + parentFolder.Path + "/" + req.Name)
+		fullPath = controllers.CleanSlashes(config.GitBasePath() + "/" + parentFolder.Path + "/" + req.Name)
 	} else {
 		dbFolder.Path = req.Name
-		fullPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + req.Name)
+		fullPath = controllers.CleanSlashes(config.GitBasePath() + "/" + req.Name)
 	}
 	//check if already exists on db
 	var existDbFolder models.Folder

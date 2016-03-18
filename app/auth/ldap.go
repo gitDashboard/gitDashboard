@@ -2,13 +2,14 @@ package auth
 
 import (
 	"errors"
+	"github.com/gitDashboard/gitDashboard/app/config"
 	ldap "github.com/mqu/openldap"
 	"github.com/revel/revel"
 	"strings"
 )
 
 func Connect() (*ldap.Ldap, error) {
-	ldapServer, found := revel.Config.String("ldap.connection")
+	ldapServer, found := config.LdapConnection()
 	if !found {
 		revel.ERROR.Fatalf("Error initializing LDAP: configuration not found \"ldap.connection\"\n")
 	}
@@ -28,7 +29,7 @@ func Login(username, password string) error {
 		return err
 	}
 
-	baseDn, found := revel.Config.String("ldap.baseDn")
+	baseDn, found := config.LdapBaseDn()
 	if !found {
 		err = errors.New("LDAP Configuration \"ldap.baseDn\" not found")
 		revel.ERROR.Printf("LDAP Login Error:%s\n", err.Error())

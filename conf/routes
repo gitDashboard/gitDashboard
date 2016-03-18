@@ -19,7 +19,7 @@ GET 	/api/v1/event/:eventId/finish				AuthorizationCtrl.FinishEvent
 
 GET 	/api/v1/folders/:parentFolder/list 			FolderCtrl.List
 GET 	/api/v1/folder/:folderId 					FolderCtrl.Get
-POST 
+
 
 GET 	/api/v1/repos/:parentFolder/list 				RepoCtrl.List
 POST	/api/v1/repo/:repoId/commits				RepoCtrl.Commits

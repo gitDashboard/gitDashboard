@@ -42,9 +42,7 @@ func init() {
 // should probably also have a filter for CSRF
 // not sure if it can go in the same filter or not
 var HeaderFilter = func(c *revel.Controller, fc []revel.Filter) {
-	if strings.Index(c.Request.URL.Path, "/git") == 0 {
-	} else {
-
+	if strings.Index(c.Request.URL.Path, "/git") != 0 {
 		// Add some common security headers
 		c.Response.Out.Header().Add("X-Frame-Options", "SAMEORIGIN")
 		c.Response.Out.Header().Add("X-XSS-Protection", "1; mode=block")

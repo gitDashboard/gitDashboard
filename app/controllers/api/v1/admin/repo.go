@@ -4,6 +4,7 @@ import (
 	"github.com/gitDashboard/client/v1/admin/request"
 	"github.com/gitDashboard/client/v1/admin/response"
 	basicResponse "github.com/gitDashboard/client/v1/response"
+	"github.com/gitDashboard/gitDashboard/app/config"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/gitDashboard/gitDashboard/app/repoManager"
@@ -23,7 +24,7 @@ func ConfigRepo(repo *git.Repository) error {
 	repoConfig, _ := repo.Config()
 	repoConfig.SetString("core.sharedRepository", "group")
 	//create update hook as symbolic link
-	hooks := []string{"update", "post-update"}
+	hooks := []string{ /*"update", "post-update"*/ }
 	for _, hook := range hooks {
 		hookPath := revel.Config.StringDefault("gd.hookFolder", "") + "/" + hook
 		repoHookPath := repo.Path() + "/hooks/" + hook
@@ -52,7 +53,7 @@ func (ctrl *AdminRepo) UpdateDescription(repoId uint) revel.Result {
 			controllers.ErrorResp(&resp, basicResponse.NoRepositoryFoundError, nil)
 			return ctrl.RenderJson(resp)
 		}
-		err := UpdateRepoDescription(controllers.CleanSlashes(controllers.GitBasePath()+"/"+dbRepo.Path), description)
+		err := UpdateRepoDescription(controllers.CleanSlashes(config.GitBasePath()+"/"+dbRepo.Path), description)
 		if err != nil {
 			controllers.ErrorResp(&resp, basicResponse.FatalError, err)
 			return ctrl.RenderJson(resp)
@@ -69,7 +70,7 @@ func (ctrl *AdminRepo) CreateRepo() revel.Result {
 	if err != nil {
 		return ctrl.RenderError(err)
 	}
-	fullPath := controllers.GitBasePath() + "/"
+	fullPath := config.GitBasePath() + "/"
 
 	if !strings.HasSuffix(req.Name, ".git") {
 		req.Name = req.Name + ".git"
@@ -116,7 +117,7 @@ func (ctrl *AdminRepo) InitExistingRepo() revel.Result {
 	var resp response.CreateFolderResponse
 	var repoPath string
 	ctrl.Params.Bind(&repoPath, "path")
-	repoPath = controllers.CleanSlashes(controllers.GitBasePath() + "/" + repoPath)
+	repoPath = controllers.CleanSlashes(config.GitBasePath() + "/" + repoPath)
 	//check if path is a git repository
 	repo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -287,8 +288,8 @@ func (ctrl *AdminRepo) Move(repoId uint) revel.Result {
 		controllers.ErrorResp(&resp, basicResponse.FatalError, db.Error)
 		return ctrl.RenderJson(resp)
 	}
-	src := controllers.CleanSlashes(controllers.GitBasePath() + "/" + oldRepoPath)
-	dst := controllers.CleanSlashes(controllers.GitBasePath() + "/" + newRepoPath)
+	src := controllers.CleanSlashes(config.GitBasePath() + "/" + oldRepoPath)
+	dst := controllers.CleanSlashes(config.GitBasePath() + "/" + newRepoPath)
 	revel.INFO.Printf("%s %s\n ", src, dst)
 	err = os.Rename(src, dst)
 	if err != nil {

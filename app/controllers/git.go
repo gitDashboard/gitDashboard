@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/gitDashboard/client/v1/misc"
+	"github.com/gitDashboard/gitDashboard/app/config"
 	"github.com/revel/revel"
 	"net/http"
 	"net/http/cgi"
@@ -78,17 +79,16 @@ func (ctrl *GitCtrl) Repo() revel.Result {
 			return ctrl.RenderError(errors.New("503 Service Unavailable"))
 		}
 
-		gitHttpBackendPath := "/usr/lib/git-core/git-http-backend"
 		var resp GitRaw
 		gitBackendCmd := cgi.Handler{
-			Path:   gitHttpBackendPath,
+			Path:   config.GitHttpBackendPath(),
 			Logger: revel.ERROR,
 		}
 		resp.Handler = &gitBackendCmd
 
 		gitBackendCmd.Env = make([]string, 8)
 		gitBackendCmd.Env[0] = "GIT_HTTP_EXPORT_ALL=true"
-		gitBackendCmd.Env[1] = "GIT_PROJECT_ROOT=" + GitBasePath()
+		gitBackendCmd.Env[1] = "GIT_PROJECT_ROOT=" + config.GitBasePath()
 		gitBackendCmd.Env[2] = "PATH_INFO=" + pathInfo
 		gitBackendCmd.Env[3] = "CONTENT_TYPE=" + ctrl.Request.Request.Header.Get("Content-Type")
 		gitBackendCmd.Env[4] = "REQUEST_METHOD=" + ctrl.Request.Request.Method

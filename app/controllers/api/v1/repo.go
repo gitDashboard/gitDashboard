@@ -7,6 +7,7 @@ import (
 	"github.com/gitDashboard/client"
 	"github.com/gitDashboard/client/v1/request"
 	"github.com/gitDashboard/client/v1/response"
+	"github.com/gitDashboard/gitDashboard/app/config"
 	"github.com/gitDashboard/gitDashboard/app/controllers"
 	"github.com/gitDashboard/gitDashboard/app/models"
 	"github.com/revel/revel"
@@ -43,7 +44,7 @@ func (ctrl *RepoCtrl) List(parentFolder uint) revel.Result {
 		var repoInfo response.RepoInfo
 		repoInfo.ID = repo.ID
 		repoInfo.Name = repo.Name
-		readRepoDescription(controllers.CleanSlashes(controllers.GitBasePath()+"/"+repo.Path), &repoInfo)
+		readRepoDescription(controllers.CleanSlashes(config.GitBasePath()+"/"+repo.Path), &repoInfo)
 		repoInfo.Path = repo.Path
 		repoInfo.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(repoInfo.Path)
 		repoInfo.IsAuthorized, repoInfo.Locked, _ = controllers.CheckAutorization(ctrl.Tx, repo.Path, ctrl.User.Username, "read", "/")
@@ -79,7 +80,7 @@ func (ctrl *RepoCtrl) Commits(repoId int) revel.Result {
 		controllers.ErrorResp(&resp, response.PermissionDeniedError, nil)
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
+	repo, err := git.OpenRepository(controllers.CleanSlashes(config.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
@@ -151,7 +152,7 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 		return ctrl.RenderJson(resp)
 	}
 
-	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
+	repo, err := git.OpenRepository(controllers.CleanSlashes(config.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		controllers.ErrorResp(&resp, response.FatalError, err)
 		return ctrl.RenderJson(resp)
@@ -175,7 +176,7 @@ func (ctrl *RepoCtrl) Info(repoId int) revel.Result {
 	resp.Info.Url = revel.Config.StringDefault("git.baseUrl", "/") + controllers.CleanSlashes(resp.Info.Path)
 	resp.Info.ID = dbRepo.ID
 	resp.Info.Locked = dbRepo.Locked
-	readRepoDescription(controllers.CleanSlashes(controllers.GitBasePath()+"/"+dbRepo.Path), &resp.Info)
+	readRepoDescription(controllers.CleanSlashes(config.GitBasePath()+"/"+dbRepo.Path), &resp.Info)
 	resp.Success = true
 	return ctrl.RenderJson(resp)
 }
@@ -230,7 +231,7 @@ func (ctrl *RepoCtrl) Files(repoId int) revel.Result {
 		resp.Error = response.PermissionDeniedError
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
+	repo, err := git.OpenRepository(controllers.CleanSlashes(config.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -313,7 +314,7 @@ func (ctrl *RepoCtrl) FileContent(repoId int, fileRef string) revel.Result {
 		resp.Error = response.PermissionDeniedError
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
+	repo, err := git.OpenRepository(controllers.CleanSlashes(config.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -398,7 +399,7 @@ func (ctrl *RepoCtrl) Commit(repoId uint, commitId string) revel.Result {
 		resp.Error = response.PermissionDeniedError
 		return ctrl.RenderJson(resp)
 	}
-	repo, err := git.OpenRepository(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
+	repo, err := git.OpenRepository(controllers.CleanSlashes(config.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		resp.Success = false
 		resp.Error = response.FatalError
@@ -508,7 +509,7 @@ func (ctrl *RepoCtrl) Graph(repoId uint) revel.Result {
 	if !authorized {
 		return ctrl.RenderError(errors.New("401: Not authorized"))
 	}
-	jsGraph, err := client.GenerateGraph(controllers.CleanSlashes(controllers.GitBasePath() + "/" + dbRepo.Path))
+	jsGraph, err := client.GenerateGraph(controllers.CleanSlashes(config.GitBasePath() + "/" + dbRepo.Path))
 	if err != nil {
 		return ctrl.RenderError(err)
 	}
